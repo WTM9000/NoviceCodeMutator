@@ -2,9 +2,11 @@ package org.example;
 
 import org.example.git.GitService;
 import org.example.model.FileModel;
+import org.example.neo4j.Neo4jConfig;
+import org.example.neo4j.VariableNode;
+import org.example.neo4j.VariableRepository;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,6 +25,13 @@ public class Main {
     public static final String NEO4J_PASSWORD = "password";
 
     public static void main(String[] args) {
+
+        Neo4jConfig config = new Neo4jConfig(
+                "bolt://localhost:7687",
+                "neo4j",
+                "password"
+        );
+
         Scanner sc = new Scanner(System.in);
 
         // Load configuration from config.txt in project root
@@ -148,21 +157,46 @@ public class Main {
                         }
 
                         // Convert each model to CPG and upload to Neo4j
-                        try (org.example.CpgUploader uploader = new org.example.CpgUploader()) {
-                            for (FileModel fm : models) {
-                                System.out.println("Processing file: " + fm.getFileName());
-                                try {
-                                    uploader.convertAndUpload(fm);
-                                    System.out.println("Uploaded CPG for " + fm.getFileName() + " to Neo4j (" + NEO4J_URI + ").");
-                                } catch (Exception ex) {
-                                    System.err.println("Failed to convert/upload file " + fm.getFileName() + ": " + ex.getMessage());
-                                    ex.printStackTrace();
+
+                        for (FileModel fm : models) {
+                            uploadToDB(fm);
+
+                            // Get variable reference nodes
+
+                            List<VariableNode> variableUses = new ArrayList<VariableNode>();
+
+                            try (VariableRepository repository = new VariableRepository(config)) {
+                                List<VariableNode> variables = repository.findAllVariableDeclarations();
+
+                                if (variables.isEmpty()){
+                                    System.out.print("No variables found!");
+                                    break;
+                                }
+
+                                System.out.println("Найдено объявлений: " + variables.size());
+                                for (VariableNode variable : variables) {
+                                    System.out.println(variable);
+                                }
+
+                                VariableNode targetVariable;
+
+                                if (variables.size() > 3 ){
+                                    targetVariable = variables.get(2);
+                                } else targetVariable = variables.get(0);
+
+                                variableUses = repository.findAllReferencesToVariable(targetVariable.getId());
+
+                                variableUses.add(targetVariable);
+
+                                System.out.println("Найдено использований переменной "+ targetVariable.getName() +": " + variableUses.size());
+                                for (VariableNode variable : variableUses) {
+                                    System.out.println(variable);
                                 }
                             }
-                        } catch (Exception e) {
-                            System.err.println("Error initializing CPG uploader: " + e.getMessage());
-                            e.printStackTrace();
+
+
                         }
+
 
                         // After successful conversion/upload, create commit and push
                         try {
@@ -273,5 +307,34 @@ public class Main {
             newName = filename + "_copy";
         }
         return original.getParent().resolve(newName);
+    }
+
+    private static void uploadToDB(FileModel fm){
+        System.out.println("Processing file: " + fm.getFileName());
+        try {
+
+            System.out.print(fm.getFilePath());
+
+            Process proc = null;
+
+            String command = "./cpg-neo4j/bin/cpg-neo4j.bat ./" + fm.getFilePath();;
+            proc = Runtime.getRuntime().exec(command);
+
+            InputStream inputStream = proc.getInputStream();
+            InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+
+            String line;
+            while ((line = bufferedReader.readLine()) != null)
+            {
+                System.out.println(line);
+            }
+
+            System.out.println("Uploaded CPG for " + fm.getFileName() + " to Neo4j (" + NEO4J_URI + ").");
+        } catch (Exception ex) {
+            System.err.println("Failed to convert/upload file " + fm.getFileName() + ": " + ex.getMessage());
+            ex.printStackTrace();
+        }
+
     }
 }
