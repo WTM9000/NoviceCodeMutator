@@ -1,0 +1,42 @@
+plugins {
+    id 'java'
+}
+
+group = 'org.example'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+
+    ivy {
+        setUrl("https://download.eclipse.org/tools/cdt/releases/")
+        metadataSources {
+            artifact()
+        }
+
+        patternLayout {
+            artifact("[organisation].[module]_[revision].[ext]")
+        }
+    }
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.9.1')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+
+    implementation "de.fraunhofer.aisec:cpg-core:9.0.2"
+    implementation "de.fraunhofer.aisec:cpg-language-cxx:9.0.2"
+    implementation "de.fraunhofer.aisec:cpg-neo4j:9.0.2"
+
+    implementation 'org.kohsuke:github-api:1.327'
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:7.4.0.202509020913-r'
+    implementation 'org.neo4j.driver:neo4j-java-driver:6.0.0'
+}
+
+dependencies {
+
+}
+
+test {
+    useJUnitPlatform()
+}
