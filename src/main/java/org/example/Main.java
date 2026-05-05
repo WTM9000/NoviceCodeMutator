@@ -1,7 +1,9 @@
 package org.example;
 
+import org.example.fileWorker.FileModelWriter;
 import org.example.git.GitService;
 import org.example.model.FileModel;
+import org.example.mutator.VariableNameReplaceMutation;
 import org.example.neo4j.Neo4jConfig;
 import org.example.neo4j.VariableNode;
 import org.example.neo4j.VariableRepository;
@@ -156,9 +158,11 @@ public class Main {
                             continue;
                         }
 
-                        // Convert each model to CPG and upload to Neo4j
+                        List<String> mutatedFilesNames = new ArrayList<String>();
 
+                        // Process original files
                         for (FileModel fm : models) {
+                            // Convert each model to CPG and upload to Neo4j
                             uploadToDB(fm);
 
                             // Get variable reference nodes
@@ -194,13 +198,21 @@ public class Main {
                                 }
                             }
 
+                            // Generate new mutated fileModel
+                            FileModel mutatedFile = new VariableNameReplaceMutation(fm, variableUses, "mutated_a").mutate();
+
+                            // Add to list of new names
+                            mutatedFilesNames.add(mutatedFile.getFileName());
+
+                            // Write new file to disk
+                            new FileModelWriter().writeUsingModelFileName(mutatedFile);
 
                         }
 
 
-                        // After successful conversion/upload, create commit and push
+                        // After successful mutation, create commit and push
                         try {
-                            String commitMessage = generateNewCommitMessage(requested);
+                            String commitMessage = generateNewCommitMessage(mutatedFilesNames);
                             System.out.println("Creating commit with message: " + commitMessage);
                             gitService.addCommitAndPushAll(commitMessage);
                             System.out.println("Committed and pushed.");
