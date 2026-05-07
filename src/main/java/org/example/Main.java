@@ -160,46 +160,23 @@ public class Main {
 
                         List<String> mutatedFilesNames = new ArrayList<String>();
 
+                        FileModel mutatedFile;
+
                         // Process original files
                         for (FileModel fm : models) {
                             // Convert each model to CPG and upload to Neo4j
                             uploadToDB(fm);
 
-                            // Get variable reference nodes
-
-                            List<VariableNode> variableUses = new ArrayList<VariableNode>();
 
                             try (VariableRepository repository = new VariableRepository(config)) {
-                                List<VariableNode> variables = repository.findAllVariableDeclarations();
 
-                                if (variables.isEmpty()){
-                                    System.out.print("No variables found!");
+                                // Generate new mutated fileModel
+                                mutatedFile = new VariableNameReplaceMutation(fm, repository, "mutated_a").execute();
+
+                                if (mutatedFile == null){
                                     break;
                                 }
-
-                                System.out.println("Найдено объявлений: " + variables.size());
-                                for (VariableNode variable : variables) {
-                                    System.out.println(variable);
-                                }
-
-                                VariableNode targetVariable;
-
-                                if (variables.size() > 3 ){
-                                    targetVariable = variables.get(2);
-                                } else targetVariable = variables.get(0);
-
-                                variableUses = repository.findAllReferencesToVariable(targetVariable.getId());
-
-                                variableUses.add(targetVariable);
-
-                                System.out.println("Найдено использований переменной "+ targetVariable.getName() +": " + variableUses.size());
-                                for (VariableNode variable : variableUses) {
-                                    System.out.println(variable);
-                                }
                             }
-
-                            // Generate new mutated fileModel
-                            FileModel mutatedFile = new VariableNameReplaceMutation(fm, variableUses, "mutated_a").mutate();
 
                             // Add to list of new names
                             mutatedFilesNames.add(mutatedFile.getFileName());

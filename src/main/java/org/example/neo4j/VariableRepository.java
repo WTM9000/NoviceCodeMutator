@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class VariableRepository implements AutoCloseable {
+public class VariableRepository extends NodeRepository implements AutoCloseable {
     private final Driver driver;
 
     public VariableRepository(Neo4jConfig config) {

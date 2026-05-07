@@ -2,6 +2,7 @@ package org.example.mutator;
 
 import org.example.model.FileModel;
 import org.example.neo4j.VariableNode;
+import org.example.neo4j.VariableRepository;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -9,17 +10,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class VariableNameReplaceMutation {
+public class VariableNameReplaceMutation extends MutationOperator {
 
-    private FileModel originalFile;
-
-    private List<VariableNode> variablesToChange;
+    private List<VariableNode> variablesToChange = null;
 
     private String newVariableName;
 
-    public VariableNameReplaceMutation(FileModel originalFile, List<VariableNode> variablesToChange, String newVariableName){
+    public VariableNameReplaceMutation(FileModel originalFile, VariableRepository repo, String newVariableName){
+        super(originalFile, repo);
         this.originalFile = originalFile;
-        this.variablesToChange = variablesToChange;
         this.newVariableName = newVariableName;
     }
 
@@ -31,7 +30,43 @@ public class VariableNameReplaceMutation {
         return variablesToChange;
     }
 
-    public FileModel mutate(){
+    private void getRelevantNodes(){
+        VariableRepository repository = (VariableRepository) this.repo;
+
+        List<VariableNode> variables = repository.findAllVariableDeclarations();
+
+        if (variables.isEmpty()){
+            System.out.print("No variables found!");
+            return;
+        }
+
+        System.out.println("Найдено объявлений: " + variables.size());
+        for (VariableNode variable : variables) {
+            System.out.println(variable);
+        }
+
+        VariableNode targetVariable;
+
+        if (variables.size() > 3 ){
+            targetVariable = variables.get(2);
+        } else targetVariable = variables.get(0);
+
+        variablesToChange = repository.findAllReferencesToVariable(targetVariable.getId());
+
+        variablesToChange.add(targetVariable);
+
+        System.out.println("Найдено использований переменной "+ targetVariable.getName() +": " + variablesToChange.size());
+        for (VariableNode variable : variablesToChange) {
+            System.out.println(variable);
+        }
+    }
+
+    protected FileModel mutate(){
+
+        if(variablesToChange == null){
+            return null;
+        }
+
         FileModel mutatedFile = originalFile;
         List<String> newLines = originalFile.getLines();
 
@@ -60,6 +95,11 @@ public class VariableNameReplaceMutation {
         mutatedFile = new FileModel(newName, newPath, newLines);
 
         return mutatedFile;
+    }
+
+    @Override
+    public String getMutationName() {
+        return "Replaced Variable Name";
     }
 
     private String buildNewName(String oldName){
