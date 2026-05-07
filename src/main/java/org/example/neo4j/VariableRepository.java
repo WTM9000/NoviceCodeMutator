@@ -62,14 +62,14 @@ public class VariableRepository implements AutoCloseable {
                 MATCH (decl)
                 WHERE id(decl) = """ + referenceId + """
                                 
-                MATCH (use)-[:REFERS_TO]->(decl)   // замените REF на ваш тип связи
+                MATCH (use)-[:REFERS_TO]->(decl)
                                 
                 RETURN id(use) AS id,
                        use.name AS name,
                        use.startLine AS line,
                        use.startColumn as column
                        
-                ORDER BY name
+                ORDER BY use.startLine DESC, use.startColumn DESC;
                 """;
 
         List<VariableNode> resultList = new ArrayList<>();
