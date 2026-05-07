@@ -274,7 +274,7 @@ public class Main {
         String time = now.format(DateTimeFormatter.ofPattern("ss:mm:HH"));
         String date = now.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("Дата: %s, время: %s%n Обработаны файлы:", date, time));
+        sb.append(String.format("Date: %s, Time: %s%n Files generated: %n", date, time));
         for (int i = 0; i < processedFiles.size(); i++) {
             sb.append(" ").append(processedFiles.get(i));
             if (i < processedFiles.size() - 1) {
