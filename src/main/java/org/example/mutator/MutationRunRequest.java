@@ -1,7 +1,5 @@
 package org.example.mutator;
 
-import org.example.mutator.MutationType;
-
 import java.nio.file.Path;
 import java.util.List;
 

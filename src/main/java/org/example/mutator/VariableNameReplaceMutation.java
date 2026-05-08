@@ -7,7 +7,6 @@ import org.example.neo4j.VariableRepository;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 
 public class VariableNameReplaceMutation extends MutationOperator {
@@ -20,14 +19,6 @@ public class VariableNameReplaceMutation extends MutationOperator {
         super(originalFile, repo);
         this.originalFile = originalFile;
         this.newVariableName = newVariableName;
-    }
-
-    public FileModel getOriginalFile() {
-        return originalFile;
-    }
-
-    public List<VariableNode> getVariablesToChange() {
-        return variablesToChange;
     }
 
     protected void getRelevantNodes(){

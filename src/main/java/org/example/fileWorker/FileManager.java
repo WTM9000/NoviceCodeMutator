@@ -20,7 +20,7 @@ public class FileManager {
             throw new IllegalArgumentException("FileModel must not be null");
         }
 
-        List lines = fileModel.getLines();
+        List<String> lines = fileModel.getLines();
         List<String> content = new ArrayList<>();
 
         if (lines != null) {
