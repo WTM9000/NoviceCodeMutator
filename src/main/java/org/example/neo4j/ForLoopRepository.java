@@ -13,6 +13,7 @@ import org.neo4j.driver.Value;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class ForLoopRepository extends NodeRepository implements AutoCloseable {
     private final Driver driver;
@@ -117,6 +118,26 @@ public class ForLoopRepository extends NodeRepository implements AutoCloseable {
                 asNullableInt(value.get("endLine")),
                 asNullableInt(value.get("endColumn"))
         );
+    }
+
+    public boolean hasInitializerDeclarationConflict(int loopId, String variableName) {
+        String cypher = """
+            MATCH (n:ForStatement)-[:SCOPE]->(s)
+            WHERE id(n) = $loopId
+            MATCH (i:Declaration)-[:SCOPE]->(s)
+            WHERE i.name = $variableName
+            RETURN i
+            LIMIT 25
+            """;
+
+        try (Session session = driver.session()) {
+            Result result = session.run(cypher, Map.of(
+                    "loopId", loopId,
+                    "variableName", variableName
+            ));
+
+            return result.hasNext();
+        }
     }
 
     private String asNullableString(Value value) {

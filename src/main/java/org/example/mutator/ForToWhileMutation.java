@@ -16,6 +16,8 @@ import java.util.List;
 public class ForToWhileMutation extends MutationOperator {
 
     private ForLoopParts loopParts;
+    private boolean hasDeclarationConflict = false;
+    private String initializerVariableName;
 
     public ForToWhileMutation(FileModel originalFile, ForLoopRepository repo) {
         super(originalFile, repo);
@@ -52,6 +54,23 @@ public class ForToWhileMutation extends MutationOperator {
             return;
         }
 
+        ForElementNode initializer = loopParts.getInitializerStatement();
+        if (initializer != null && initializer.getCode() != null && !initializer.getCode().isBlank()) {
+            initializerVariableName = extractDeclaredVariableName(initializer.getCode());
+
+            if (initializerVariableName != null && !initializerVariableName.isBlank()) {
+                hasDeclarationConflict = repository.hasInitializerDeclarationConflict(
+                        loopParts.getLoop().getId(),
+                        initializerVariableName
+                );
+
+                if (hasDeclarationConflict) {
+                    System.out.println("Declaration conflict detected for variable: " + initializerVariableName);
+                    return;
+                }
+            }
+        }
+
         System.out.println("Picked loop: " + loopParts.getLoop());
         System.out.println("Initializer: " + loopParts.getInitializerStatement());
         System.out.println("Condition: " + loopParts.getCondition());
@@ -62,6 +81,11 @@ public class ForToWhileMutation extends MutationOperator {
     @Override
     protected FileModel mutate() {
         if (loopParts == null || loopParts.getLoop() == null) {
+            return null;
+        }
+
+        if (hasDeclarationConflict) {
+            System.out.println("Skipping mutation because initializer declaration conflicts with an earlier declaration.");
             return null;
         }
 
@@ -133,9 +157,6 @@ public class ForToWhileMutation extends MutationOperator {
                 newBodyText
         ));
 
-        System.out.print(loop.getStartLine() +" "+ loop.getStartColumn()+" "+" "+loop.getStartLine()+" "+ oldHeaderEndColumn);
-        System.out.print(loop.getStartLine() +" "+ loop.getStartColumn()+" "+" "+loop.getStartLine()+" "+ oldHeaderEndColumn);
-
         edits.add(new TextEdit(
                 loop.getStartLine(),
                 loop.getStartColumn(),
@@ -144,15 +165,22 @@ public class ForToWhileMutation extends MutationOperator {
                 whileHeader
         ));
 
+
+        int i = 0;
+
         if (initializer != null && initializer.getCode() != null && !initializer.getCode().isBlank()) {
             String initText = initializer.getCode().trim();
-            initText = ensureEndsWithSemicolon(initText) + System.lineSeparator();
+
+            String insertText = ensureEndsWithSemicolon(initText) + System.lineSeparator();
+            String padding = "%1$" + (loop.getStartColumn()-1 + insertText.length()) + "s" ;
+
+            initText = String.format(padding, insertText);
 
             edits.add(new TextEdit(
                     loop.getStartLine(),
-                    loop.getStartColumn(),
+                    1,
                     loop.getStartLine(),
-                    loop.getStartColumn(),
+                    1,
                     initText
             ));
         }
@@ -189,6 +217,7 @@ public class ForToWhileMutation extends MutationOperator {
         if (startLineIndex == endLineIndex) {
             String line = lines.get(startLineIndex);
             String updated = line.substring(0, startColumnIndex) + edit.getReplacement() + line.substring(endColumnIndex);
+
             lines.set(startLineIndex, updated);
             return;
         }
@@ -241,6 +270,33 @@ public class ForToWhileMutation extends MutationOperator {
         }
 
         return filename + suffix;
+    }
+
+    private String extractDeclaredVariableName(String initializerCode) {
+        if (initializerCode == null) {
+            return null;
+        }
+
+        String normalized = initializerCode.trim();
+        if (normalized.isEmpty()) {
+            return null;
+        }
+
+        int eqIndex = normalized.indexOf('=');
+        String leftPart = eqIndex >= 0 ? normalized.substring(0, eqIndex).trim() : normalized;
+
+        if (leftPart.isEmpty()) {
+            return null;
+        }
+
+        leftPart = leftPart.replace("*", " ").replace("&", " ").trim();
+        String[] parts = leftPart.split("\\s+");
+
+        if (parts.length == 0) {
+            return null;
+        }
+
+        return parts[parts.length - 1].trim();
     }
 
     private static class TextEdit {
