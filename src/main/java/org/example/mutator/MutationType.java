@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import java.util.Objects;
 
 public enum MutationType {
-    VARIABLE_NAME_REPLACE("ReplaceNameVariables");
+    VARIABLE_NAME_REPLACE("ReplaceNameVariables"),
+    FOR_TO_WHILE("ForToWhile");
 
     private final String text;
 
