@@ -5,7 +5,6 @@ import org.example.git.GitService;
 import org.example.model.FileModel;
 import org.example.mutator.*;
 import org.example.neo4j.Neo4jConfig;
-import org.example.neo4j.VariableRepository;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -30,7 +29,7 @@ public class MutationApplicationService {
 
     public List<String> listCandidateFiles(Path workdir) throws IOException {
         if (workdir == null || !Files.exists(workdir) || !Files.isDirectory(workdir)) {
-            throw new IllegalArgumentException("Некорректная рабочая папка: " + workdir);
+            throw new IllegalArgumentException("Bad working directory: " + workdir);
         }
 
         try (Stream<Path> stream = Files.walk(workdir)) {
@@ -50,54 +49,61 @@ public class MutationApplicationService {
             validateRequest(request);
 
             Path workdir = request.getWorkdir();
-            logger.accept("Рабочая папка: " + workdir);
+            logger.accept("Working directory: " + workdir);
+            logger.accept("Number of picked files: " + request.getSelectedFiles().size());
 
             GitService gitService = null;
             if (!isBlank(request.getGithubUsername()) && !isBlank(request.getGithubToken())) {
                 gitService = new GitService(workdir.toFile(), request.getGithubUsername(), request.getGithubToken());
 
                 if (!gitService.isGitRepository() && !isBlank(request.getRepoName())) {
-                    logger.accept("Git-repository not found. Initializing remote repo...");
+                    logger.accept("Git-repository not found. Initialising remote repository...");
                     gitService.initializeAndCreateRemote(request.getRepoName());
                 }
             } else {
-                logger.accept("GitHub credentials not set. Skip credentials...");
+                logger.accept("GitHub credentials not set. Commit/push will be skipped.");
             }
 
             List<String> generatedFileNames = new ArrayList<>();
 
             for (String selectedFile : request.getSelectedFiles()) {
-                Path absolutePath = workdir.resolve(selectedFile).normalize();
-                logger.accept("Reading file... " + absolutePath);
+                logger.accept("========================================");
+                logger.accept("File processing begin: " + selectedFile);
 
+                Path absolutePath = request.getWorkdir().resolve(selectedFile).normalize();
                 FileModel currentFile = readFileModel(absolutePath);
 
+                logger.accept("File uploaded: " + currentFile.getFileName());
+
                 for (MutationType mutationType : request.getSelectedMutations()) {
-                    logger.accept("Preparing to mutate... " + mutationType.value());
+                    logger.accept("Applying mutation " + mutationType.value() + " to file " + currentFile.getFileName());
 
                     uploadToDbIfNeeded(currentFile, logger);
 
                     FileModel mutated = applyMutationWithRepository(currentFile, mutationType, request);
+
                     if (mutated == null) {
-                        logger.accept("Mutatuion  " + mutationType.value() + " skipped for file " + currentFile.getFileName());
+                        logger.accept("Mutation " + mutationType.value() + " gave no result for file " + currentFile.getFileName());
                         continue;
                     }
 
                     Path writtenPath = fileModelWriter.writeUsingModelFileName(mutated);
-                    logger.accept("File saved: " + writtenPath);
+                    logger.accept("New file saved: " + writtenPath);
 
                     result.addGeneratedFile(writtenPath);
                     generatedFileNames.add(mutated.getFileName());
 
                     currentFile = mutated;
                 }
+
+                logger.accept("File process complete: " + selectedFile);
             }
 
             if (gitService != null && !generatedFileNames.isEmpty()) {
                 String commitMessage = generateCommitMessage(generatedFileNames);
-                logger.accept("Create commit: " + commitMessage.replace(System.lineSeparator(), " | "));
+                logger.accept("Creating commit...");
                 gitService.addCommitAndPushAll(commitMessage);
-                logger.accept("Commit and push complete.");
+                logger.accept("Commit и push complete.");
             } else {
                 logger.accept("Commit/push skipped.");
             }
@@ -132,19 +138,18 @@ public class MutationApplicationService {
                 "password"
         );
 
-        try (VariableRepository repository = new VariableRepository(config)) {
-            MutationOperator operator = mutationOperatorFactory.create(
-                    mutationType,
-                    fileModel,
-                    repository,
-                    request.getNewVariableName()
-            );
-            return operator.execute();
-        }
+        MutationOperator operator = mutationOperatorFactory.create(
+                mutationType,
+                fileModel,
+                config,
+                request.getNewVariableName()
+        );
+
+        return operator.execute();
     }
 
     private void uploadToDbIfNeeded(FileModel fileModel, Consumer<String> logger) {
-        logger.accept("Загрузка CPG в БД для файла: " + fileModel.getFileName());
+        logger.accept("Converting and uploading file to DB: " + fileModel.getFileName());
 
         Path executable = Path.of("cpg-neo4j", "bin", "cpg-neo4j.bat");
         Path filePath = fileModel.getFilePath().toAbsolutePath().normalize();
@@ -154,7 +159,7 @@ public class MutationApplicationService {
                 filePath.toString()
         );
 
-        logger.accept("Команда: " + String.join(" ", command));
+        logger.accept("Command: " + String.join(" ", command));
 
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         processBuilder.redirectErrorStream(false);
@@ -174,12 +179,12 @@ public class MutationApplicationService {
             stderrThread.join();
 
             if (exitCode != 0) {
-                throw new IllegalStateException("Команда cpg-neo4j завершилась с кодом: " + exitCode);
+                throw new IllegalStateException("Command cpg-neo4j ended with code: " + exitCode);
             }
 
-            logger.accept("CPG успешно загружен в Neo4j для файла: " + fileModel.getFileName());
+            logger.accept("CPG successfully uploaded to Neo4J: " + fileModel.getFileName());
         } catch (Exception ex) {
-            throw new RuntimeException("Ошибка загрузки CPG в БД для файла " + fileModel.getFileName(), ex);
+            throw new RuntimeException("Error while uploading CPG to DB for file " + fileModel.getFileName(), ex);
         }
     }
 
@@ -190,7 +195,7 @@ public class MutationApplicationService {
                 logger.accept(prefix + " " + line);
             }
         } catch (IOException e) {
-            logger.accept(prefix + " Ошибка чтения потока процесса: " + e.getMessage());
+            logger.accept(prefix + " Error while reading process thread: " + e.getMessage());
         }
     }
 
@@ -204,13 +209,13 @@ public class MutationApplicationService {
             throw new IllegalArgumentException("request must not be null");
         }
         if (request.getWorkdir() == null || !Files.exists(request.getWorkdir()) || !Files.isDirectory(request.getWorkdir())) {
-            throw new IllegalArgumentException("Некорректная рабочая папка: " + request.getWorkdir());
+            throw new IllegalArgumentException("Bad working directory: " + request.getWorkdir());
         }
         if (request.getSelectedFiles() == null || request.getSelectedFiles().isEmpty()) {
-            throw new IllegalArgumentException("Не выбраны файлы.");
+            throw new IllegalArgumentException("No files picked.");
         }
         if (request.getSelectedMutations() == null || request.getSelectedMutations().isEmpty()) {
-            throw new IllegalArgumentException("Не выбраны мутации.");
+            throw new IllegalArgumentException("No mutations picked.");
         }
     }
 

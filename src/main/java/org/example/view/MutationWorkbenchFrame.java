@@ -1,6 +1,7 @@
 package org.example.view;
 
 import org.example.controller.MutationApplicationService;
+import org.example.fileWorker.AppConfig;
 import org.example.mutator.MutationType;
 import org.example.mutator.MutationRunRequest;
 import org.example.mutator.MutationRunResult;
@@ -61,6 +62,7 @@ public class MutationWorkbenchFrame extends JFrame {
 
         initUi();
         bindActions();
+        loadConfigValuesIntoForm();
     }
 
     private void initUi() {
@@ -115,9 +117,13 @@ public class MutationWorkbenchFrame extends JFrame {
 
     private JPanel buildFilesPanel() {
         JPanel panel = new JPanel(new BorderLayout(6, 6));
-        panel.setBorder(BorderFactory.createTitledBorder("Files"));
+        panel.setBorder(BorderFactory.createTitledBorder("Файлы"));
 
         filesList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        filesList.setVisibleRowCount(18);
+
+        JLabel hintLabel = new JLabel("Можно выбрать несколько файлов: Ctrl/Shift + клик");
+        panel.add(hintLabel, BorderLayout.NORTH);
         panel.add(new JScrollPane(filesList), BorderLayout.CENTER);
 
         return panel;
@@ -205,26 +211,27 @@ public class MutationWorkbenchFrame extends JFrame {
         String repoName = repoNameField.getText().trim();
         String newVariableName = newVariableNameField.getText().trim();
 
-        List<String> selectedFiles = filesList.getSelectedValuesList();
+        List<String> selectedFiles = new ArrayList<>(filesList.getSelectedValuesList());
         List<MutationType> selectedMutations = getSelectedMutations();
 
         if (workdir.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Select work directory.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Укажи рабочую папку.", "Ошибка", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         if (selectedFiles.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Pick at least one file.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Выбери хотя бы один файл.", "Ошибка", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         if (selectedMutations.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Pick at least one mutation.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Выбери хотя бы одну мутацию.", "Ошибка", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         setControlsEnabled(false);
-        appendLog("Start processing...");
+        appendLog("Запуск обработки...");
+        appendLog("Выбрано файлов: " + selectedFiles.size());
 
         MutationRunRequest request = new MutationRunRequest(
                 Path.of(workdir),
@@ -254,10 +261,10 @@ public class MutationWorkbenchFrame extends JFrame {
                 setControlsEnabled(true);
                 try {
                     MutationRunResult result = get();
-                    appendLog("Done. Generated files: " + result.getGeneratedFiles().size());
+                    appendLog("Готово. Сгенерировано файлов: " + result.getGeneratedFiles().size());
                 } catch (Exception ex) {
-                    appendLog("Runtime error: " + ex.getMessage());
-                    JOptionPane.showMessageDialog(MutationWorkbenchFrame.this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    appendLog("Ошибка выполнения: " + ex.getMessage());
+                    JOptionPane.showMessageDialog(MutationWorkbenchFrame.this, ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
                 }
             }
         };
@@ -294,5 +301,31 @@ public class MutationWorkbenchFrame extends JFrame {
     private void appendLog(String message) {
         logArea.append(message + System.lineSeparator());
         logArea.setCaretPosition(logArea.getDocument().getLength());
+    }
+
+    private void loadConfigValuesIntoForm() {
+        try {
+            AppConfig config = AppConfig.loadFromDefaultLocation();
+
+            if (config.getWorkdir() != null && !config.getWorkdir().isBlank()) {
+                workdirField.setText(config.getWorkdir());
+            }
+
+            if (config.getGithubUsername() != null && !config.getGithubUsername().isBlank()) {
+                githubUsernameField.setText(config.getGithubUsername());
+            }
+
+            if (config.getGithubToken() != null && !config.getGithubToken().isBlank()) {
+                githubTokenField.setText(config.getGithubToken());
+            }
+
+            if (config.getRepoName() != null && !config.getRepoName().isBlank()) {
+                repoNameField.setText(config.getRepoName());
+            }
+
+            appendLog("Configuration loaded from config.txt");
+        } catch (Exception ex) {
+            appendLog("Configuration was not loaded: " + ex.getMessage());
+        }
     }
 }
