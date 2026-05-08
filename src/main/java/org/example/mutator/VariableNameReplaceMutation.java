@@ -30,7 +30,7 @@ public class VariableNameReplaceMutation extends MutationOperator {
         return variablesToChange;
     }
 
-    private void getRelevantNodes(){
+    protected void getRelevantNodes(){
         VariableRepository repository = (VariableRepository) this.repo;
 
         List<VariableNode> variables = repository.findAllVariableDeclarations();

@@ -20,7 +20,10 @@ public abstract class MutationOperator {
 
     protected abstract FileModel mutate();
 
+    protected abstract void getRelevantNodes();
+
     public FileModel execute(){
+        getRelevantNodes();
         FileModel newFile = mutate();
         //Запихать сюда событие, если надо
         return newFile;
