@@ -18,6 +18,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -83,7 +84,7 @@ public class MutationApplicationService {
                 for (MutationType mutationType : request.getSelectedMutations()) {
                     logger.accept("Applying mutation " + mutationType.value() + " to file " + lastMutatedFile.getFileName());
 
-                    FileModel mutated = applyMutationWithRepository(lastMutatedFile, mutationType, request);
+                    FileModel mutated = applyMutationWithRepository(lastMutatedFile, mutationType, request, logger);
 
                     if (mutated == null) {
                         logger.accept("Mutation " + mutationType.value() + " was skipped for file " + lastMutatedFile.getFileName());
@@ -156,18 +157,21 @@ public class MutationApplicationService {
 
     private FileModel applyMutationWithRepository(FileModel fileModel,
                                                   MutationType mutationType,
-                                                  MutationRunRequest request) throws Exception {
+                                                  MutationRunRequest request,
+                                                  Consumer<String> logger) throws Exception {
         Neo4jConfig config = new Neo4jConfig(
                 "bolt://localhost:7687",
                 "neo4j",
                 "password"
         );
 
+        Map<String, String> parameters = request.getMutationParameters().getOrDefault(mutationType, Map.of());
+
         MutationOperator operator = mutationOperatorFactory.create(
                 mutationType,
                 fileModel,
                 config,
-                request.getNewVariableName()
+                parameters
         );
 
         return operator.execute();

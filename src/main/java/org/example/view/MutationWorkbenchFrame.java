@@ -6,21 +6,7 @@ import org.example.mutator.MutationType;
 import org.example.mutator.MutationRunRequest;
 import org.example.mutator.MutationRunResult;
 
-import javax.swing.BorderFactory;
-import javax.swing.DefaultListModel;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
-import javax.swing.SwingWorker;
+import javax.swing.*;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -38,12 +24,13 @@ public class MutationWorkbenchFrame extends JFrame {
     private final JTextField githubUsernameField = new JTextField(20);
     private final JTextField githubTokenField = new JTextField(20);
     private final JTextField repoNameField = new JTextField(20);
-    private final JTextField newVariableNameField = new JTextField("mutated_a", 20);
 
     private final DefaultListModel<String> filesModel = new DefaultListModel<>();
     private final JList<String> filesList = new JList<>(filesModel);
 
     private final Map<MutationType, JCheckBox> mutationCheckboxes = new LinkedHashMap<>();
+    private final Map<MutationType, JPanel> mutationParameterPanels = new LinkedHashMap<>();
+    private final Map<MutationType, Map<String, JTextField>> mutationParameterFields = new LinkedHashMap<>();
 
     private final JTextArea logArea = new JTextArea();
 
@@ -105,8 +92,6 @@ public class MutationWorkbenchFrame extends JFrame {
         JPanel repoPanel = new JPanel(new GridLayout(1, 4, 6, 6));
         repoPanel.add(new JLabel("Repo name:"));
         repoPanel.add(repoNameField);
-        repoPanel.add(new JLabel("New variable name:"));
-        repoPanel.add(newVariableNameField);
 
         panel.add(workdirPanel);
         panel.add(githubPanel);
@@ -133,16 +118,77 @@ public class MutationWorkbenchFrame extends JFrame {
         JPanel panel = new JPanel(new BorderLayout(6, 6));
         panel.setBorder(BorderFactory.createTitledBorder("Mutations"));
 
-        JPanel content = new JPanel(new GridLayout(0, 1, 4, 4));
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 
         for (MutationType mutationType : MutationType.values()) {
+            JPanel mutationBlock = new JPanel(new BorderLayout(4, 4));
+            mutationBlock.setBorder(BorderFactory.createEmptyBorder(4, 4, 8, 4));
+
             JCheckBox checkBox = new JCheckBox(mutationType.value());
             mutationCheckboxes.put(mutationType, checkBox);
-            content.add(checkBox);
+            mutationBlock.add(checkBox, BorderLayout.NORTH);
+
+            JPanel paramsPanel = buildParametersPanelForMutation(mutationType);
+            mutationParameterPanels.put(mutationType, paramsPanel);
+
+            paramsPanel.setVisible(false);
+            mutationBlock.add(paramsPanel, BorderLayout.CENTER);
+
+            checkBox.addActionListener(e -> paramsPanel.setVisible(checkBox.isSelected()));
+
+            content.add(mutationBlock);
         }
 
         panel.add(new JScrollPane(content), BorderLayout.CENTER);
         return panel;
+    }
+
+    private JPanel buildParametersPanelForMutation(MutationType mutationType) {
+        JPanel panel = new JPanel(new GridLayout(0, 2, 6, 6));
+        panel.setBorder(BorderFactory.createTitledBorder("Parameters"));
+
+        Map<String, JTextField> fields = new LinkedHashMap<>();
+
+        switch (mutationType) {
+            case VARIABLE_NAME_REPLACE -> {
+                JTextField newVariableNameField = new JTextField("mutated_a", 20);
+                fields.put("newVariableName", newVariableNameField);
+
+                panel.add(new JLabel("New variable name:"));
+                panel.add(newVariableNameField);
+            }
+            case FOR_TO_WHILE -> {
+                panel.setLayout(new BorderLayout());
+                panel.add(new JLabel("No parameters"), BorderLayout.CENTER);
+            }
+            default -> {
+                panel.setLayout(new BorderLayout());
+                panel.add(new JLabel("No parameters"), BorderLayout.CENTER);
+            }
+        }
+
+        mutationParameterFields.put(mutationType, fields);
+        return panel;
+    }
+
+    private Map<MutationType, Map<String, String>> collectMutationParameters(List<MutationType> selectedMutations) {
+        Map<MutationType, Map<String, String>> result = new LinkedHashMap<>();
+
+        for (MutationType mutationType : selectedMutations) {
+            Map<String, JTextField> fields = mutationParameterFields.get(mutationType);
+            Map<String, String> values = new LinkedHashMap<>();
+
+            if (fields != null) {
+                for (Map.Entry<String, JTextField> entry : fields.entrySet()) {
+                    values.put(entry.getKey(), entry.getValue().getText().trim());
+                }
+            }
+
+            result.put(mutationType, values);
+        }
+
+        return result;
     }
 
     private JPanel buildActionsPanel() {
@@ -209,7 +255,6 @@ public class MutationWorkbenchFrame extends JFrame {
         String githubUsername = githubUsernameField.getText().trim();
         String githubToken = githubTokenField.getText().trim();
         String repoName = repoNameField.getText().trim();
-        String newVariableName = newVariableNameField.getText().trim();
 
         List<String> selectedFiles = new ArrayList<>(filesList.getSelectedValuesList());
         List<MutationType> selectedMutations = getSelectedMutations();
@@ -233,14 +278,16 @@ public class MutationWorkbenchFrame extends JFrame {
         appendLog("Запуск обработки...");
         appendLog("Выбрано файлов: " + selectedFiles.size());
 
+        Map<MutationType, Map<String, String>> mutationParameters = collectMutationParameters(selectedMutations);
+
         MutationRunRequest request = new MutationRunRequest(
                 Path.of(workdir),
                 githubUsername,
                 githubToken,
                 repoName,
-                newVariableName,
                 selectedFiles,
-                selectedMutations
+                selectedMutations,
+                mutationParameters
         );
 
         SwingWorker<MutationRunResult, String> worker = new SwingWorker<>() {
@@ -291,7 +338,6 @@ public class MutationWorkbenchFrame extends JFrame {
         githubUsernameField.setEnabled(enabled);
         githubTokenField.setEnabled(enabled);
         repoNameField.setEnabled(enabled);
-        newVariableNameField.setEnabled(enabled);
         filesList.setEnabled(enabled);
         for (JCheckBox checkBox : mutationCheckboxes.values()) {
             checkBox.setEnabled(enabled);

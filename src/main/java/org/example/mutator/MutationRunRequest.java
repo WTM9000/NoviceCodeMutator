@@ -1,7 +1,10 @@
 package org.example.mutator;
 
+import org.example.mutator.MutationType;
+
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 public class MutationRunRequest {
 
@@ -9,24 +12,24 @@ public class MutationRunRequest {
     private final String githubUsername;
     private final String githubToken;
     private final String repoName;
-    private final String newVariableName;
     private final List<String> selectedFiles;
     private final List<MutationType> selectedMutations;
+    private final Map<MutationType, Map<String, String>> mutationParameters;
 
     public MutationRunRequest(Path workdir,
                               String githubUsername,
                               String githubToken,
                               String repoName,
-                              String newVariableName,
                               List<String> selectedFiles,
-                              List<MutationType> selectedMutations) {
+                              List<MutationType> selectedMutations,
+                              Map<MutationType, Map<String, String>> mutationParameters) {
         this.workdir = workdir;
         this.githubUsername = githubUsername;
         this.githubToken = githubToken;
         this.repoName = repoName;
-        this.newVariableName = newVariableName;
         this.selectedFiles = selectedFiles;
         this.selectedMutations = selectedMutations;
+        this.mutationParameters = mutationParameters;
     }
 
     public Path getWorkdir() {
@@ -45,15 +48,23 @@ public class MutationRunRequest {
         return repoName;
     }
 
-    public String getNewVariableName() {
-        return newVariableName;
-    }
-
     public List<String> getSelectedFiles() {
         return selectedFiles;
     }
 
     public List<MutationType> getSelectedMutations() {
         return selectedMutations;
+    }
+
+    public Map<MutationType, Map<String, String>> getMutationParameters() {
+        return mutationParameters;
+    }
+
+    public String getMutationParameter(MutationType mutationType, String parameterName) {
+        Map<String, String> params = mutationParameters.get(mutationType);
+        if (params == null) {
+            return null;
+        }
+        return params.get(parameterName);
     }
 }
