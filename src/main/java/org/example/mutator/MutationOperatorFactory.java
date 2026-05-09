@@ -1,10 +1,7 @@
 package org.example.mutator;
 
 import org.example.model.FileModel;
-import org.example.neo4j.ForLoopRepository;
-import org.example.neo4j.Neo4jConfig;
-import org.example.neo4j.NodeRepository;
-import org.example.neo4j.VariableRepository;
+import org.example.neo4j.*;
 
 import java.util.Map;
 
@@ -33,6 +30,7 @@ public class MutationOperatorFactory {
         return switch (mutationType) {
             case VARIABLE_NAME_REPLACE -> createVariableNameReplace(fileModel, config, parameters);
             case VARIABLE_ALGEBRAIC_WRAP -> createVariableAlgebraicWrap(fileModel, config, parameters);
+            case BINARY_OPERATOR_COMMUTE -> createBinaryOperatorCommute(fileModel, config);
             case FOR_TO_WHILE -> createForToWhile(fileModel, config);
         };
     }
@@ -67,5 +65,11 @@ public class MutationOperatorFactory {
 
         VariableRepository repository = new VariableRepository(config);
         return new VariableAlgebraicWrapMutation(fileModel, repository, operator);
+    }
+
+    private MutationOperator createBinaryOperatorCommute(FileModel fileModel,
+                                                         Neo4jConfig config) {
+        BinaryOperatorRepository repository = new BinaryOperatorRepository(config);
+        return new BinaryOperatorCommuteMutation(fileModel, repository);
     }
 }

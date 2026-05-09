@@ -232,7 +232,7 @@ public class MutationWorkbenchFrame extends JFrame {
                             List.of("+", "-", "*", "/")
                     )
             );
-            case FOR_TO_WHILE -> List.of();
+            default -> List.of();
         };
     }
 
