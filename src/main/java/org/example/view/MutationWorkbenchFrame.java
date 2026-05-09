@@ -30,7 +30,7 @@ public class MutationWorkbenchFrame extends JFrame {
 
     private final Map<MutationType, JCheckBox> mutationCheckboxes = new LinkedHashMap<>();
     private final Map<MutationType, JPanel> mutationParameterPanels = new LinkedHashMap<>();
-    private final Map<MutationType, Map<String, JTextField>> mutationParameterFields = new LinkedHashMap<>();
+    Map<MutationType, List<MutationParameterBinding>> mutationParameterBindings = new LinkedHashMap<>();
 
     private final JTextArea logArea = new JTextArea();
 
@@ -145,30 +145,29 @@ public class MutationWorkbenchFrame extends JFrame {
     }
 
     private JPanel buildParametersPanelForMutation(MutationType mutationType) {
-        JPanel panel = new JPanel(new GridLayout(0, 2, 6, 6));
-        panel.setBorder(BorderFactory.createTitledBorder("Parameters"));
+        List<MutationParameterDefinition> definitions = getParameterDefinitions(mutationType);
+        List<MutationParameterBinding> bindings = new ArrayList<>();
 
-        Map<String, JTextField> fields = new LinkedHashMap<>();
+        JPanel panel = new JPanel();
 
-        switch (mutationType) {
-            case VARIABLE_NAME_REPLACE -> {
-                JTextField newVariableNameField = new JTextField("mutated_a", 20);
-                fields.put("newVariableName", newVariableNameField);
-
-                panel.add(new JLabel("New variable name:"));
-                panel.add(newVariableNameField);
-            }
-            case FOR_TO_WHILE -> {
-                panel.setLayout(new BorderLayout());
-                panel.add(new JLabel("No parameters"), BorderLayout.CENTER);
-            }
-            default -> {
-                panel.setLayout(new BorderLayout());
-                panel.add(new JLabel("No parameters"), BorderLayout.CENTER);
-            }
+        if (definitions.isEmpty()) {
+            panel.setLayout(new BorderLayout());
+            panel.add(new JLabel("No parameters"), BorderLayout.CENTER);
+            mutationParameterBindings.put(mutationType, bindings);
+            return panel;
         }
 
-        mutationParameterFields.put(mutationType, fields);
+        panel.setLayout(new GridLayout(0, 2, 6, 6));
+
+        for (MutationParameterDefinition definition : definitions) {
+            MutationParameterBinding binding = createBinding(definition);
+            bindings.add(binding);
+
+            panel.add(new JLabel(definition.getLabel()));
+            panel.add(binding.getComponent());
+        }
+
+        mutationParameterBindings.put(mutationType, bindings);
         return panel;
     }
 
@@ -176,19 +175,65 @@ public class MutationWorkbenchFrame extends JFrame {
         Map<MutationType, Map<String, String>> result = new LinkedHashMap<>();
 
         for (MutationType mutationType : selectedMutations) {
-            Map<String, JTextField> fields = mutationParameterFields.get(mutationType);
+            List<MutationParameterBinding> bindings = mutationParameterBindings.getOrDefault(mutationType, List.of());
             Map<String, String> values = new LinkedHashMap<>();
 
-            if (fields != null) {
-                for (Map.Entry<String, JTextField> entry : fields.entrySet()) {
-                    values.put(entry.getKey(), entry.getValue().getText().trim());
-                }
+            for (MutationParameterBinding binding : bindings) {
+                values.put(binding.getDefinition().getKey(), binding.getValue());
             }
 
             result.put(mutationType, values);
         }
 
         return result;
+    }
+
+    private MutationParameterBinding createBinding(MutationParameterDefinition definition) {
+        JComponent component;
+
+        switch (definition.getControlType()) {
+            case TEXT -> {
+                JTextField textField = new JTextField(definition.getDefaultValue(), 20);
+                component = textField;
+            }
+            case COMBO -> {
+                JComboBox<String> comboBox = new JComboBox<>(definition.getOptions().toArray(new String[0]));
+                comboBox.setSelectedItem(definition.getDefaultValue());
+                component = comboBox;
+            }
+            case CHECKBOX -> {
+                JCheckBox checkBox = new JCheckBox();
+                checkBox.setSelected(Boolean.parseBoolean(definition.getDefaultValue()));
+                component = checkBox;
+            }
+            default -> throw new IllegalStateException("Unsupported control type: " + definition.getControlType());
+        }
+
+        return new MutationParameterBinding(definition, component);
+    }
+
+    private List<MutationParameterDefinition> getParameterDefinitions(MutationType mutationType) {
+        return switch (mutationType) {
+            case VARIABLE_NAME_REPLACE -> List.of(
+                    new MutationParameterDefinition(
+                            "newVariableName",
+                            "New variable name:",
+                            MutationParameterControlType.TEXT,
+                            "mutated_a",
+                            List.of()
+                    )
+            );
+            case VARIABLE_ALGEBRAIC_WRAP -> List.of(
+                    new MutationParameterDefinition(
+                            "operator",
+                            "Operator:",
+                            MutationParameterControlType.COMBO,
+                            "+",
+                            List.of("+", "-", "*", "/")
+                    )
+            );
+            case FOR_TO_WHILE -> List.of();
+        };
     }
 
     private JPanel buildActionsPanel() {
