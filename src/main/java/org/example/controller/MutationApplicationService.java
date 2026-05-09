@@ -68,35 +68,60 @@ public class MutationApplicationService {
 
             for (String selectedFile : request.getSelectedFiles()) {
                 logger.accept("========================================");
-                logger.accept("File processing begin: " + selectedFile);
+                logger.accept("Started processing file: " + selectedFile);
 
                 Path absolutePath = request.getWorkdir().resolve(selectedFile).normalize();
                 FileModel currentFile = readFileModel(absolutePath);
 
-                logger.accept("File uploaded: " + currentFile.getFileName());
+                logger.accept("Original file loaded: " + currentFile.getFileName());
+
+                uploadToDbIfNeeded(currentFile, logger);
+
+                FileModel lastMutatedFile = currentFile;
+                boolean hasSuccessfulMutation = false;
 
                 for (MutationType mutationType : request.getSelectedMutations()) {
-                    logger.accept("Applying mutation " + mutationType.value() + " to file " + currentFile.getFileName());
+                    logger.accept("Applying mutation " + mutationType.value() + " to file " + lastMutatedFile.getFileName());
 
-                    uploadToDbIfNeeded(currentFile, logger);
-
-                    FileModel mutated = applyMutationWithRepository(currentFile, mutationType, request);
+                    FileModel mutated = applyMutationWithRepository(lastMutatedFile, mutationType, request);
 
                     if (mutated == null) {
-                        logger.accept("Mutation " + mutationType.value() + " gave no result for file " + currentFile.getFileName());
+                        logger.accept("Mutation " + mutationType.value() + " was skipped for file " + lastMutatedFile.getFileName());
                         continue;
                     }
 
-                    Path writtenPath = fileModelWriter.writeUsingModelFileName(mutated);
-                    logger.accept("New file saved: " + writtenPath);
+                    Path tempPath = buildTempPath(absolutePath);
+                    FileModel tempFileModel = new FileModel(
+                            tempPath.getFileName().toString(),
+                            tempPath,
+                            mutated.getLines()
+                    );
 
-                    result.addGeneratedFile(writtenPath);
-                    generatedFileNames.add(mutated.getFileName());
+                    try {
+                        fileModelWriter.writeTo(tempFileModel);
+                        logger.accept("Temporary file created: " + tempPath);
 
-                    currentFile = mutated;
+                        uploadToDbIfNeeded(tempFileModel, logger);
+                        logger.accept("Temporary file was uploaded to Neo4j.");
+                    } finally {
+                        deleteTempFileIfExists(tempPath, logger);
+                    }
+
+                    lastMutatedFile = mutated;
+                    hasSuccessfulMutation = true;
                 }
 
-                logger.accept("File process complete: " + selectedFile);
+                if (hasSuccessfulMutation) {
+                    fileModelWriter.writeUsingModelFileName(lastMutatedFile);
+                    logger.accept("Final mutated file created: " + lastMutatedFile.getFilePath());
+
+                    result.addGeneratedFile(lastMutatedFile.getFilePath());
+                    generatedFileNames.add(lastMutatedFile.getFileName());
+                } else {
+                    logger.accept("No final file was created because no mutation succeeded for: " + selectedFile);
+                }
+
+                logger.accept("Finished processing file: " + selectedFile);
             }
 
             if (gitService != null && !generatedFileNames.isEmpty()) {
@@ -235,6 +260,31 @@ public class MutationApplicationService {
         }
 
         return sb.toString();
+    }
+
+    private Path buildTempPath(Path originalPath) {
+        String fileName = originalPath.getFileName().toString();
+        int dotIndex = fileName.lastIndexOf('.');
+
+        String tempName;
+        if (dotIndex > 0) {
+            String base = fileName.substring(0, dotIndex);
+            String ext = fileName.substring(dotIndex);
+            tempName = base + "_Temp" + ext;
+        } else {
+            tempName = fileName + "_Temp";
+        }
+
+        return originalPath.getParent().resolve(tempName);
+    }
+
+    private void deleteTempFileIfExists(Path tempPath, Consumer<String> logger) {
+        try {
+            Files.deleteIfExists(tempPath);
+            logger.accept("Temporary file deleted: " + tempPath);
+        } catch (IOException ex) {
+            logger.accept("Failed to delete temporary file: " + tempPath + ". Reason: " + ex.getMessage());
+        }
     }
 
     private boolean isBlank(String value) {
