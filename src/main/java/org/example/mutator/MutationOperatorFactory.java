@@ -32,6 +32,7 @@ public class MutationOperatorFactory {
 
         return switch (mutationType) {
             case VARIABLE_NAME_REPLACE -> createVariableNameReplace(fileModel, config, parameters);
+            case VARIABLE_ALGEBRAIC_WRAP -> createVariableAlgebraicWrap(fileModel, config, parameters);
             case FOR_TO_WHILE -> createForToWhile(fileModel, config);
         };
     }
@@ -53,5 +54,18 @@ public class MutationOperatorFactory {
                                               Neo4jConfig config) {
         ForLoopRepository repository = new ForLoopRepository(config);
         return new ForToWhileMutation(fileModel, repository);
+    }
+
+    private MutationOperator createVariableAlgebraicWrap(FileModel fileModel,
+                                                         Neo4jConfig config,
+                                                         Map<String, String> parameters) {
+        String operator = parameters.get("operator");
+
+        if (operator == null || operator.isBlank()) {
+            throw new IllegalArgumentException("Parameter 'operator' must not be blank for VARIABLE_ALGEBRAIC_WRAP");
+        }
+
+        VariableRepository repository = new VariableRepository(config);
+        return new VariableAlgebraicWrapMutation(fileModel, repository, operator);
     }
 }

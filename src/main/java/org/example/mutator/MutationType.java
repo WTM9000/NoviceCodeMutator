@@ -5,6 +5,7 @@ import java.util.Objects;
 
 public enum MutationType {
     VARIABLE_NAME_REPLACE("ReplaceNameVariables"),
+    VARIABLE_ALGEBRAIC_WRAP("VariableAlgebraicWrap"),
     FOR_TO_WHILE("ForToWhile");
 
     private final String text;
