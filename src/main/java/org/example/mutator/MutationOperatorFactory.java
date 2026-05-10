@@ -31,6 +31,7 @@ public class MutationOperatorFactory {
             case VARIABLE_NAME_REPLACE -> createVariableNameReplace(fileModel, config, parameters);
             case VARIABLE_ALGEBRAIC_WRAP -> createVariableAlgebraicWrap(fileModel, config, parameters);
             case BINARY_OPERATOR_COMMUTE -> createBinaryOperatorCommute(fileModel, config);
+            case WHILE_TO_FOR -> createWhileToFor(fileModel, config);
             case FOR_TO_WHILE -> createForToWhile(fileModel, config);
         };
     }
@@ -71,5 +72,10 @@ public class MutationOperatorFactory {
                                                          Neo4jConfig config) {
         BinaryOperatorRepository repository = new BinaryOperatorRepository(config);
         return new BinaryOperatorCommuteMutation(fileModel, repository);
+    }
+
+    private MutationOperator createWhileToFor(FileModel fileModel, Neo4jConfig config) {
+        WhileLoopRepository repository = new WhileLoopRepository(config);
+        return new WhileToForMutation(fileModel, repository);
     }
 }

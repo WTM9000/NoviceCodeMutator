@@ -7,7 +7,8 @@ public enum MutationType {
     VARIABLE_NAME_REPLACE("ReplaceNameVariables"),
     VARIABLE_ALGEBRAIC_WRAP("VariableAlgebraicWrap"),
     BINARY_OPERATOR_COMMUTE("BinaryOperatorCommute"),
-    FOR_TO_WHILE("ForToWhile");
+    FOR_TO_WHILE("ForToWhile"),
+    WHILE_TO_FOR("WhileToFor");
 
     private final String text;
 
