@@ -168,29 +168,25 @@ public class ForToWhileMutation extends MutationOperator {
 
         int i = 0;
 
-        if (initializer != null && initializer.getCode() != null && !initializer.getCode().isBlank()) {
-            String initText = initializer.getCode().trim();
-
-            String insertText = ensureEndsWithSemicolon(initText) + System.lineSeparator();
-            String padding = "%1$" + (loop.getStartColumn()-1 + insertText.length()) + "s" ;
-
-            initText = String.format(padding, insertText);
-
-            edits.add(new TextEdit(
-                    loop.getStartLine(),
-                    1,
-                    loop.getStartLine(),
-                    1,
-                    initText
-            ));
-        }
-
         edits.sort(Comparator
                 .comparingInt(TextEdit::getStartLine).reversed()
                 .thenComparing(Comparator.comparingInt(TextEdit::getStartColumn).reversed()));
 
+        // Apply in-string edits
         for (TextEdit edit : edits) {
             applyEdit(newLines, edit);
+        }
+
+        // Insert/delete strings
+        if (initializer != null && initializer.getCode() != null && !initializer.getCode().isBlank()) {
+            String initText = initializer.getCode().trim();
+
+            String insertText = ensureEndsWithSemicolon(initText);
+            String padding = "%1$" + (loop.getStartColumn()-1 + insertText.length()) + "s" ;
+
+            initText = String.format(padding, insertText);
+
+            applyLineEdit(newLines, initText, loop.getStartLine());
         }
 
         String newName = buildNewName(originalFile.getFileName());
@@ -233,6 +229,20 @@ public class ForToWhileMutation extends MutationOperator {
         }
 
         lines.set(startLineIndex, prefix + edit.getReplacement() + suffix);
+    }
+
+    private void applyLineEdit(List<String> lines, String newString, int startId){
+        int startLineId = startId - 1;
+
+        if (startLineId < 0 || startLineId >= lines.size()) {
+            throw new IllegalArgumentException("Edit out of file bounds: " + newString);
+        }
+
+        if (newString == null){
+            return;
+        }
+
+        lines.add(startLineId, newString);
     }
 
     private String safeCode(ForElementNode node) {
