@@ -10,7 +10,8 @@ public enum MutationType {
     FOR_TO_WHILE("ForToWhile"),
     WHILE_TO_FOR("WhileToFor"),
     DE_MORGAN("DeMorgan"),
-    NEGATED_COMPARISON("NegatedComparison");
+    NEGATED_COMPARISON("NegatedComparison"),
+    TERNARY_TO_IF_ELSE("TernaryToIfElse");
 
     private final String text;
 
