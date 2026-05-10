@@ -33,6 +33,7 @@ public class MutationOperatorFactory {
             case BINARY_OPERATOR_COMMUTE -> createBinaryOperatorCommute(fileModel, config);
             case WHILE_TO_FOR -> createWhileToFor(fileModel, config);
             case FOR_TO_WHILE -> createForToWhile(fileModel, config);
+            case DE_MORGAN -> createDeMorgan(fileModel, config);
         };
     }
 
@@ -77,5 +78,10 @@ public class MutationOperatorFactory {
     private MutationOperator createWhileToFor(FileModel fileModel, Neo4jConfig config) {
         WhileLoopRepository repository = new WhileLoopRepository(config);
         return new WhileToForMutation(fileModel, repository);
+    }
+
+    private MutationOperator createDeMorgan(FileModel fileModel, Neo4jConfig config) {
+        DeMorganRepository repository = new DeMorganRepository(config);
+        return new DeMorganMutation(fileModel, repository);
     }
 }

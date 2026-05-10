@@ -8,7 +8,8 @@ public enum MutationType {
     VARIABLE_ALGEBRAIC_WRAP("VariableAlgebraicWrap"),
     BINARY_OPERATOR_COMMUTE("BinaryOperatorCommute"),
     FOR_TO_WHILE("ForToWhile"),
-    WHILE_TO_FOR("WhileToFor");
+    WHILE_TO_FOR("WhileToFor"),
+    DE_MORGAN("DeMorgan");
 
     private final String text;
 
