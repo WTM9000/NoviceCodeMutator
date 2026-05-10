@@ -9,7 +9,8 @@ public enum MutationType {
     BINARY_OPERATOR_COMMUTE("BinaryOperatorCommute"),
     FOR_TO_WHILE("ForToWhile"),
     WHILE_TO_FOR("WhileToFor"),
-    DE_MORGAN("DeMorgan");
+    DE_MORGAN("DeMorgan"),
+    NEGATED_COMPARISON("NegatedComparison");
 
     private final String text;
 

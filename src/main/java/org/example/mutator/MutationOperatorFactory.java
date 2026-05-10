@@ -34,6 +34,7 @@ public class MutationOperatorFactory {
             case WHILE_TO_FOR -> createWhileToFor(fileModel, config);
             case FOR_TO_WHILE -> createForToWhile(fileModel, config);
             case DE_MORGAN -> createDeMorgan(fileModel, config);
+            case NEGATED_COMPARISON -> createNegatedComparison(fileModel, config);
         };
     }
 
@@ -83,5 +84,10 @@ public class MutationOperatorFactory {
     private MutationOperator createDeMorgan(FileModel fileModel, Neo4jConfig config) {
         DeMorganRepository repository = new DeMorganRepository(config);
         return new DeMorganMutation(fileModel, repository);
+    }
+
+    private MutationOperator createNegatedComparison(FileModel fileModel, Neo4jConfig config) {
+        NegatedComparisonRepository repository = new NegatedComparisonRepository(config);
+        return new NegatedComparisonMutation(fileModel, repository);
     }
 }
