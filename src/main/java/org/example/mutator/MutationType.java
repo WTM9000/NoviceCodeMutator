@@ -11,7 +11,8 @@ public enum MutationType {
     WHILE_TO_FOR("WhileToFor"),
     DE_MORGAN("DeMorgan"),
     NEGATED_COMPARISON("NegatedComparison"),
-    TERNARY_TO_IF_ELSE("TernaryToIfElse");
+    TERNARY_TO_IF_ELSE("TernaryToIfElse"),
+    EXPRESSION_SPLIT("ExpressionSplit");
 
     private final String text;
 

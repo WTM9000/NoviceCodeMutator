@@ -232,6 +232,15 @@ public class MutationWorkbenchFrame extends JFrame {
                             List.of("+", "-", "*", "/")
                     )
             );
+            case EXPRESSION_SPLIT -> List.of(
+                    new MutationParameterDefinition(
+                            "newVariableName",
+                            "New variable name:",
+                            MutationParameterControlType.TEXT,
+                            "mutation_temp",
+                            List.of()
+                    )
+            );
             default -> List.of();
         };
     }

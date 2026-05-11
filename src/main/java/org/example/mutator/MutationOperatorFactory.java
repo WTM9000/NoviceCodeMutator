@@ -2,6 +2,7 @@ package org.example.mutator;
 
 import org.example.model.FileModel;
 import org.example.neo4j.*;
+import org.example.neo4j.repository.*;
 
 import java.util.Map;
 
@@ -36,6 +37,7 @@ public class MutationOperatorFactory {
             case DE_MORGAN -> createDeMorgan(fileModel, config);
             case NEGATED_COMPARISON -> createNegatedComparison(fileModel, config);
             case TERNARY_TO_IF_ELSE -> createTernaryToIfElse(fileModel, config);
+            case EXPRESSION_SPLIT -> createExpressionSplit(fileModel, config, parameters);
         };
     }
 
@@ -95,5 +97,20 @@ public class MutationOperatorFactory {
     private MutationOperator createTernaryToIfElse(FileModel fileModel, Neo4jConfig config) {
         TernaryRepository repository = new TernaryRepository(config);
         return new TernaryToIfElseMutation(fileModel, repository);
+    }
+
+    private MutationOperator createExpressionSplit(FileModel fileModel,
+                                                   Neo4jConfig config,
+                                                   Map<String, String> parameters) {
+        String newVariableName = parameters.get("newVariableName");
+
+        if (newVariableName == null || newVariableName.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Parameter 'newVariableName' must not be blank for EXPRESSION_SPLIT"
+            );
+        }
+
+        ExpressionSplitRepository repository = new ExpressionSplitRepository(config);
+        return new ExpressionSplitMutation(fileModel, repository, newVariableName);
     }
 }
