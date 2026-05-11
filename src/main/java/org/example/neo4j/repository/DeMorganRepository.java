@@ -1,7 +1,8 @@
-package org.example.neo4j;
+package org.example.neo4j.repository;
 
 import org.example.model.BinaryOperationArgument;
-import org.example.model.TernaryExpressionNode;
+import org.example.model.DeMorganExpressionNode;
+import org.example.neo4j.Neo4jConfig;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
@@ -13,28 +14,27 @@ import org.neo4j.driver.Value;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TernaryRepository extends NodeRepository implements AutoCloseable {
+public class DeMorganRepository extends NodeRepository implements AutoCloseable {
 
     private final Driver driver;
 
-    public TernaryRepository(Neo4jConfig config) {
+    public DeMorganRepository(Neo4jConfig config) {
         this.driver = GraphDatabase.driver(
                 config.getUri(),
                 AuthTokens.basic(config.getUsername(), config.getPassword())
         );
     }
 
-    public List<TernaryExpressionNode> findAllTernaryExpressions() {
+    public List<DeMorganExpressionNode> findAllDeMorganCandidates() {
         String cypher = """
-                MATCH (t:ConditionalExpression)
-                OPTIONAL MATCH (t)-[:CONDITION]->(cond)
-                OPTIONAL MATCH (t)-[:THEN_EXPRESSION]->(thenBranch)
-                OPTIONAL MATCH (t)-[:ELSE_EXPRESSION]->(elseBranch)
-                RETURN t, cond, thenBranch, elseBranch
-                ORDER BY t.startLine, t.startColumn
+                MATCH (n:UnaryOperator)-[:OPERATOR_BASE]->(c:BinaryOperator)
+                WHERE n.name = "!" AND (c.name = "&&" OR c.name = "||")
+                MATCH (c)-[:OPERATOR_BASE]->(b)
+                MATCH (c)-[:OPERATOR_ARGUMENTS]->(a)
+                RETURN n, c, a, b
                 """;
 
-        List<TernaryExpressionNode> resultList = new ArrayList<>();
+        List<DeMorganExpressionNode> resultList = new ArrayList<>();
 
         try (Session session = driver.session()) {
             Result result = session.run(cypher);
@@ -42,24 +42,28 @@ public class TernaryRepository extends NodeRepository implements AutoCloseable {
             while (result.hasNext()) {
                 Record record = result.next();
 
-                Value t = record.get("t");
-                Value cond = record.get("cond");
-                Value thenVal = record.get("thenBranch");
-                Value elseVal = record.get("elseBranch");
+                Value n = record.get("n");
+                Value c = record.get("c");
+                Value b = record.get("b");
+                Value a = record.get("a");
 
-                if (t.isNull() || cond.isNull() || thenVal.isNull() || elseVal.isNull()) {
+                if (n.isNull() || c.isNull() || b.isNull() || a.isNull()) {
                     continue;
                 }
 
-                resultList.add(new TernaryExpressionNode(
-                        (int) t.asNode().id(),
-                        asNullableInt(cond.get("startLine")),
-                        asNullableInt(cond.get("startColumn"))-1,
-                        asNullableInt(elseVal.get("endLine")),
-                        asNullableInt(elseVal.get("endColumn")),
-                        mapArgument(cond),
-                        mapArgument(thenVal),
-                        mapArgument(elseVal)
+                BinaryOperationArgument leftArgument = mapArgument(b);
+                BinaryOperationArgument rightArgument = mapArgument(a);
+
+                resultList.add(new DeMorganExpressionNode(
+                        (int) n.asNode().id(),
+                        (int) c.asNode().id(),
+                        asNullableString(c.get("name")),
+                        asNullableInt(n.get("startLine")),
+                        asNullableInt(n.get("startColumn")),
+                        asNullableInt(n.get("endLine")),
+                        asNullableInt(n.get("endColumn")),
+                        leftArgument,
+                        rightArgument
                 ));
             }
         }

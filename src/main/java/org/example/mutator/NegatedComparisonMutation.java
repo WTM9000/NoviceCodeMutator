@@ -3,7 +3,7 @@ package org.example.mutator;
 import org.example.model.FileModel;
 import org.example.model.NegatedComparisonNode;
 import org.example.model.BinaryOperationArgument;
-import org.example.neo4j.NegatedComparisonRepository;
+import org.example.neo4j.repository.NegatedComparisonRepository;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;

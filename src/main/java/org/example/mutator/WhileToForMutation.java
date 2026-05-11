@@ -4,7 +4,7 @@ import org.example.model.FileModel;
 import org.example.model.ForElementNode;
 import org.example.model.WhileLoopNode;
 import org.example.model.WhileLoopParts;
-import org.example.neo4j.WhileLoopRepository;
+import org.example.neo4j.repository.WhileLoopRepository;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;

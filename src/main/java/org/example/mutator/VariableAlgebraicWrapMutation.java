@@ -1,8 +1,8 @@
 package org.example.mutator;
 
 import org.example.model.FileModel;
-import org.example.neo4j.VariableNode;
-import org.example.neo4j.VariableRepository;
+import org.example.model.VariableNode;
+import org.example.neo4j.repository.VariableRepository;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;

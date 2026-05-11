@@ -1,7 +1,7 @@
 package org.example.mutator;
 
 import org.example.model.FileModel;
-import org.example.neo4j.NodeRepository;
+import org.example.neo4j.repository.NodeRepository;
 
 public abstract class MutationOperator {
 

@@ -1,5 +1,7 @@
-package org.example.neo4j;
+package org.example.neo4j.repository;
 
+import org.example.neo4j.Neo4jConfig;
+import org.example.model.VariableNode;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
@@ -10,7 +12,6 @@ import org.neo4j.driver.Value;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class VariableRepository extends NodeRepository implements AutoCloseable {
     private final Driver driver;

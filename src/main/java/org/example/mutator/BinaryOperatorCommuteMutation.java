@@ -3,7 +3,7 @@ package org.example.mutator;
 import org.example.model.FileModel;
 import org.example.model.BinaryOperationArgument;
 import org.example.model.BinaryOperatorNode;
-import org.example.neo4j.BinaryOperatorRepository;
+import org.example.neo4j.repository.BinaryOperatorRepository;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;

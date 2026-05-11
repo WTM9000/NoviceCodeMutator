@@ -1,7 +1,8 @@
-package org.example.neo4j;
+package org.example.neo4j.repository;
 
 import org.example.model.BinaryOperationArgument;
-import org.example.model.DeMorganExpressionNode;
+import org.example.model.NegatedComparisonNode;
+import org.example.neo4j.Neo4jConfig;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
@@ -13,27 +14,29 @@ import org.neo4j.driver.Value;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DeMorganRepository extends NodeRepository implements AutoCloseable {
+public class NegatedComparisonRepository extends NodeRepository implements AutoCloseable {
 
     private final Driver driver;
 
-    public DeMorganRepository(Neo4jConfig config) {
+    public NegatedComparisonRepository(Neo4jConfig config) {
         this.driver = GraphDatabase.driver(
                 config.getUri(),
                 AuthTokens.basic(config.getUsername(), config.getPassword())
         );
     }
 
-    public List<DeMorganExpressionNode> findAllDeMorganCandidates() {
+    public List<NegatedComparisonNode> findAllNegatedComparisons() {
         String cypher = """
                 MATCH (n:UnaryOperator)-[:OPERATOR_BASE]->(c:BinaryOperator)
-                WHERE n.name = "!" AND (c.name = "&&" OR c.name = "||")
+                WHERE n.name = "!"
+                  AND (c.name = "<" OR c.name = "<=" OR c.name = ">"
+                       OR c.name = ">=" OR c.name = "==" OR c.name = "!=")
                 MATCH (c)-[:OPERATOR_BASE]->(b)
                 MATCH (c)-[:OPERATOR_ARGUMENTS]->(a)
-                RETURN n, c, a, b
+                RETURN n, c, b, a
                 """;
 
-        List<DeMorganExpressionNode> resultList = new ArrayList<>();
+        List<NegatedComparisonNode> resultList = new ArrayList<>();
 
         try (Session session = driver.session()) {
             Result result = session.run(cypher);
@@ -53,7 +56,7 @@ public class DeMorganRepository extends NodeRepository implements AutoCloseable 
                 BinaryOperationArgument leftArgument = mapArgument(b);
                 BinaryOperationArgument rightArgument = mapArgument(a);
 
-                resultList.add(new DeMorganExpressionNode(
+                resultList.add(new NegatedComparisonNode(
                         (int) n.asNode().id(),
                         (int) c.asNode().id(),
                         asNullableString(c.get("name")),

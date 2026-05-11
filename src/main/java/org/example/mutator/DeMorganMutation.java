@@ -3,7 +3,7 @@ package org.example.mutator;
 import org.example.model.DeMorganExpressionNode;
 import org.example.model.FileModel;
 import org.example.model.BinaryOperationArgument;
-import org.example.neo4j.DeMorganRepository;
+import org.example.neo4j.repository.DeMorganRepository;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;

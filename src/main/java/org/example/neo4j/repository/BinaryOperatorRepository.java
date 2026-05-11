@@ -1,7 +1,8 @@
-package org.example.neo4j;
+package org.example.neo4j.repository;
 
 import org.example.model.BinaryOperationArgument;
 import org.example.model.BinaryOperatorNode;
+import org.example.neo4j.Neo4jConfig;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
