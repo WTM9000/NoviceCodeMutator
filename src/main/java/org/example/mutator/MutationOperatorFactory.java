@@ -40,6 +40,7 @@ public class MutationOperatorFactory {
             case EXPRESSION_SPLIT -> createExpressionSplit(fileModel, config, parameters);
             case IF_ELSE_TO_SEQUENTIAL_IF -> createIfElseToSequentialIf(fileModel, config);
             case BOOLEAN_ASSIGNMENT_TO_IF -> createBooleanAssignmentToIf(fileModel, config);
+            case VARIABLE_DECLARATION_HOIST -> createVariableDeclarationHoist(fileModel, config);
         };
     }
 
@@ -125,5 +126,12 @@ public class MutationOperatorFactory {
                                                          Neo4jConfig config) {
         BooleanAssignmentRepository repository = new BooleanAssignmentRepository(config);
         return new BooleanAssignmentToIfMutation(fileModel, repository);
+    }
+
+    private MutationOperator createVariableDeclarationHoist(FileModel fileModel,
+                                                            Neo4jConfig config) {
+        VariableDeclarationHoistRepository repository =
+                new VariableDeclarationHoistRepository(config);
+        return new VariableDeclarationHoistMutation(fileModel, repository);
     }
 }

@@ -14,7 +14,8 @@ public enum MutationType {
     TERNARY_TO_IF_ELSE("TernaryToIfElse"),
     EXPRESSION_SPLIT("ExpressionSplit"),
     IF_ELSE_TO_SEQUENTIAL_IF("IfElseToSequentialIf"),
-    BOOLEAN_ASSIGNMENT_TO_IF("BooleanAssignmentToIf");
+    BOOLEAN_ASSIGNMENT_TO_IF("BooleanAssignmentToIf"),
+    VARIABLE_DECLARATION_HOIST("VariableDeclarationHoist");
 
     private final String text;
 
