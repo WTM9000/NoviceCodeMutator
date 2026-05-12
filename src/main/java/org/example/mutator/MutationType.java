@@ -13,7 +13,8 @@ public enum MutationType {
     NEGATED_COMPARISON("NegatedComparison"),
     TERNARY_TO_IF_ELSE("TernaryToIfElse"),
     EXPRESSION_SPLIT("ExpressionSplit"),
-    IF_ELSE_TO_SEQUENTIAL_IF("IfElseToSequentialIf");;
+    IF_ELSE_TO_SEQUENTIAL_IF("IfElseToSequentialIf"),
+    BOOLEAN_ASSIGNMENT_TO_IF("BooleanAssignmentToIf");
 
     private final String text;
 

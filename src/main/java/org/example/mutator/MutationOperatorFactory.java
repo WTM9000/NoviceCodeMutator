@@ -39,6 +39,7 @@ public class MutationOperatorFactory {
             case TERNARY_TO_IF_ELSE -> createTernaryToIfElse(fileModel, config);
             case EXPRESSION_SPLIT -> createExpressionSplit(fileModel, config, parameters);
             case IF_ELSE_TO_SEQUENTIAL_IF -> createIfElseToSequentialIf(fileModel, config);
+            case BOOLEAN_ASSIGNMENT_TO_IF -> createBooleanAssignmentToIf(fileModel, config);
         };
     }
 
@@ -118,5 +119,11 @@ public class MutationOperatorFactory {
     private MutationOperator createIfElseToSequentialIf(FileModel fileModel, Neo4jConfig config) {
         IfElseChainRepository repository = new IfElseChainRepository(config);
         return new IfElseToSequentialIfMutation(fileModel, repository);
+    }
+
+    private MutationOperator createBooleanAssignmentToIf(FileModel fileModel,
+                                                         Neo4jConfig config) {
+        BooleanAssignmentRepository repository = new BooleanAssignmentRepository(config);
+        return new BooleanAssignmentToIfMutation(fileModel, repository);
     }
 }
