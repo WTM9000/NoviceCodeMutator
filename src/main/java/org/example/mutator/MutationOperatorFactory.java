@@ -38,6 +38,7 @@ public class MutationOperatorFactory {
             case NEGATED_COMPARISON -> createNegatedComparison(fileModel, config);
             case TERNARY_TO_IF_ELSE -> createTernaryToIfElse(fileModel, config);
             case EXPRESSION_SPLIT -> createExpressionSplit(fileModel, config, parameters);
+            case IF_ELSE_TO_SEQUENTIAL_IF -> createIfElseToSequentialIf(fileModel, config);
         };
     }
 
@@ -112,5 +113,10 @@ public class MutationOperatorFactory {
 
         ExpressionSplitRepository repository = new ExpressionSplitRepository(config);
         return new ExpressionSplitMutation(fileModel, repository, newVariableName);
+    }
+
+    private MutationOperator createIfElseToSequentialIf(FileModel fileModel, Neo4jConfig config) {
+        IfElseChainRepository repository = new IfElseChainRepository(config);
+        return new IfElseToSequentialIfMutation(fileModel, repository);
     }
 }

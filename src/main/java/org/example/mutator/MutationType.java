@@ -12,7 +12,8 @@ public enum MutationType {
     DE_MORGAN("DeMorgan"),
     NEGATED_COMPARISON("NegatedComparison"),
     TERNARY_TO_IF_ELSE("TernaryToIfElse"),
-    EXPRESSION_SPLIT("ExpressionSplit");
+    EXPRESSION_SPLIT("ExpressionSplit"),
+    IF_ELSE_TO_SEQUENTIAL_IF("IfElseToSequentialIf");;
 
     private final String text;
 
