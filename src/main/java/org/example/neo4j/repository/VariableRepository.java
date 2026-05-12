@@ -99,10 +99,6 @@ public class VariableRepository extends NodeRepository implements AutoCloseable 
         return resultList;
     }
 
-    private String asNullableString(Value value) {
-        return value.isNull() ? null : value.asString();
-    }
-
     @Override
     public void close() {
         driver.close();

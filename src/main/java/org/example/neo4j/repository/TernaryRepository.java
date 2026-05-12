@@ -78,14 +78,6 @@ public class TernaryRepository extends NodeRepository implements AutoCloseable {
         );
     }
 
-    private String asNullableString(Value value) {
-        return value == null || value.isNull() ? null : value.asString();
-    }
-
-    private int asNullableInt(Value value) {
-        return value == null || value.isNull() ? -1 : value.asInt();
-    }
-
     @Override
     public void close() {
         driver.close();
