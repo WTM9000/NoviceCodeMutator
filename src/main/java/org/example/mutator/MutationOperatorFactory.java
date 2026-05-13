@@ -42,6 +42,8 @@ public class MutationOperatorFactory {
             case BOOLEAN_ASSIGNMENT_TO_IF -> createBooleanAssignmentToIf(fileModel, config);
             case VARIABLE_DECLARATION_HOIST -> createVariableDeclarationHoist(fileModel, config);
             case CONTINUE_ANTI_IDIOM -> createContinueAntiIdiom(fileModel, config);
+            case ELSE_IF_FLATTEN -> createElseIfFlatten(fileModel, config);
+            case COMPOUND_CONDITION_EXPAND -> createCompoundConditionExpand(fileModel, config);
         };
     }
 
@@ -140,5 +142,17 @@ public class MutationOperatorFactory {
                                                      Neo4jConfig config) {
         ContinueAntiIdiomRepository repository = new ContinueAntiIdiomRepository(config);
         return new ContinueAntiIdiomMutation(fileModel, repository);
+    }
+
+    private MutationOperator createElseIfFlatten(FileModel fileModel, Neo4jConfig config) {
+        ElseIfFlattenRepository repository = new ElseIfFlattenRepository(config);
+        return new ElseIfFlattenMutation(fileModel, repository);
+    }
+
+    private MutationOperator createCompoundConditionExpand(FileModel fileModel,
+                                                           Neo4jConfig config) {
+        CompoundConditionExpandRepository repository =
+                new CompoundConditionExpandRepository(config);
+        return new CompoundConditionExpandMutation(fileModel, repository);
     }
 }

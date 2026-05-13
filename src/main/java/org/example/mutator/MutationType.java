@@ -16,7 +16,9 @@ public enum MutationType {
     IF_ELSE_TO_SEQUENTIAL_IF("IfElseToSequentialIf"),
     BOOLEAN_ASSIGNMENT_TO_IF("BooleanAssignmentToIf"),
     VARIABLE_DECLARATION_HOIST("VariableDeclarationHoist"),
-    CONTINUE_ANTI_IDIOM("ContinueAntiIdiom");
+    CONTINUE_ANTI_IDIOM("ContinueAntiIdiom"),
+    ELSE_IF_FLATTEN("ElseIfFlatten"),
+    COMPOUND_CONDITION_EXPAND("CompoundConditionExpand"),;
 
     private final String text;
 
