@@ -15,7 +15,8 @@ public enum MutationType {
     EXPRESSION_SPLIT("ExpressionSplit"),
     IF_ELSE_TO_SEQUENTIAL_IF("IfElseToSequentialIf"),
     BOOLEAN_ASSIGNMENT_TO_IF("BooleanAssignmentToIf"),
-    VARIABLE_DECLARATION_HOIST("VariableDeclarationHoist");
+    VARIABLE_DECLARATION_HOIST("VariableDeclarationHoist"),
+    CONTINUE_ANTI_IDIOM("ContinueAntiIdiom");
 
     private final String text;
 

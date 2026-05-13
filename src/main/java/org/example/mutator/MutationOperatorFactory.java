@@ -41,6 +41,7 @@ public class MutationOperatorFactory {
             case IF_ELSE_TO_SEQUENTIAL_IF -> createIfElseToSequentialIf(fileModel, config);
             case BOOLEAN_ASSIGNMENT_TO_IF -> createBooleanAssignmentToIf(fileModel, config);
             case VARIABLE_DECLARATION_HOIST -> createVariableDeclarationHoist(fileModel, config);
+            case CONTINUE_ANTI_IDIOM -> createContinueAntiIdiom(fileModel, config);
         };
     }
 
@@ -133,5 +134,11 @@ public class MutationOperatorFactory {
         VariableDeclarationHoistRepository repository =
                 new VariableDeclarationHoistRepository(config);
         return new VariableDeclarationHoistMutation(fileModel, repository);
+    }
+
+    private MutationOperator createContinueAntiIdiom(FileModel fileModel,
+                                                     Neo4jConfig config) {
+        ContinueAntiIdiomRepository repository = new ContinueAntiIdiomRepository(config);
+        return new ContinueAntiIdiomMutation(fileModel, repository);
     }
 }
