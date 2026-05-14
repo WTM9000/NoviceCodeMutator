@@ -36,7 +36,8 @@ public class BinaryOperatorRepository extends NodeRepository implements AutoClos
                 RETURN id(n) AS id,
                        n.name AS type,
                        n.startLine AS startLine,
-                       n.startColumn AS startColumn
+                       n.startColumn AS startColumn,
+                       n.endColumn as endColumn
                 """;
 
         List<BinaryOperatorNode> resultList = new ArrayList<>();
@@ -55,8 +56,9 @@ public class BinaryOperatorRepository extends NodeRepository implements AutoClos
                 String type = asNullableString(record.get("type"));
                 int startLine = record.get("startLine").asInt();
                 int startColumn = record.get("startColumn").asInt();
+                int endColumn = record.get("endColumn").asInt();
 
-                resultList.add(new BinaryOperatorNode(id, type, startLine, startColumn));
+                resultList.add(new BinaryOperatorNode(id, type, startLine, startColumn, endColumn));
             }
         }
 

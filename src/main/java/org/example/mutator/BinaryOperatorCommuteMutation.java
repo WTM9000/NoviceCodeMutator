@@ -67,12 +67,23 @@ public class BinaryOperatorCommuteMutation extends MutationOperator {
 
         String sourceLine = newLines.get(lineIndex);
 
-        int replaceStart = leftArgument.getStartColumn() - 1;
-        int replaceEnd = rightArgument.getEndColumn() - 1;
+        int replaceStart = selectedOperator.getStartColumn() - 1;
+        int replaceEnd = selectedOperator.getEndColumn() - 1;
 
-        String replacement = "(" + rightArgument.getCode()
+        String leftArgumentCode = leftArgument.getCode();
+        if (leftArgument.getStartColumn() != selectedOperator.getStartColumn()){
+            leftArgumentCode = "(" + leftArgumentCode + ")";
+        }
+
+        String rightArgumentCode = rightArgument.getCode();
+
+        if (rightArgument.getEndColumn() != selectedOperator.getEndColumn()){
+            rightArgumentCode = "(" + rightArgumentCode + ")";
+        }
+
+        String replacement = "(" + rightArgumentCode
                 + " " + selectedOperator.getType()
-                + " " + leftArgument.getCode() + ")";
+                + " " + leftArgumentCode + ")";
 
         String newLine = sourceLine.substring(0, replaceStart)
                 + replacement

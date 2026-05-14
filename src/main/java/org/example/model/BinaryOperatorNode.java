@@ -6,12 +6,14 @@ public class BinaryOperatorNode {
     private final String type;
     private final int startLine;
     private final int startColumn;
+    private final int endColumn;
 
-    public BinaryOperatorNode(int id, String type, int startLine, int startColumn) {
+    public BinaryOperatorNode(int id, String type, int startLine, int startColumn, int endColumn) {
         this.id = id;
         this.type = type;
         this.startLine = startLine;
         this.startColumn = startColumn;
+        this.endColumn = endColumn;
     }
 
     public int getId() {
@@ -30,6 +32,8 @@ public class BinaryOperatorNode {
         return startColumn;
     }
 
+    public int getEndColumn() { return endColumn; }
+
     @Override
     public String toString() {
         return "BinaryOperatorNode{" +
@@ -37,6 +41,7 @@ public class BinaryOperatorNode {
                 ", type='" + type + '\'' +
                 ", startLine=" + startLine +
                 ", startColumn=" + startColumn +
+                ", endColumn=" + endColumn +
                 '}';
     }
 }
