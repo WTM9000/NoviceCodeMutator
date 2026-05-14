@@ -3,17 +3,21 @@ package org.example.model;
 public class ForLoopParts {
     private final ForLoopNode loop;
     private final ForElementNode initializerStatement;
+    private final boolean initializerIsDeclaration;
     private final ForElementNode condition;
     private final ForElementNode iterationStatement;
+
     private final ForElementNode body;
 
     public ForLoopParts(ForLoopNode loop,
                         ForElementNode initializerStatement,
+                        boolean initializerIsDeclaration,
                         ForElementNode condition,
                         ForElementNode iterationStatement,
                         ForElementNode body) {
         this.loop = loop;
         this.initializerStatement = initializerStatement;
+        this.initializerIsDeclaration = initializerIsDeclaration;
         this.condition = condition;
         this.iterationStatement = iterationStatement;
         this.body = body;
@@ -26,6 +30,8 @@ public class ForLoopParts {
     public ForElementNode getInitializerStatement() {
         return initializerStatement;
     }
+
+    public boolean isInitializerDeclaration() { return initializerIsDeclaration; }
 
     public ForElementNode getCondition() {
         return condition;

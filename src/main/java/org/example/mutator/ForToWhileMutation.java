@@ -9,14 +9,14 @@ import org.example.neo4j.repository.ForLoopRepository;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 public class ForToWhileMutation extends MutationOperator {
 
     private ForLoopParts loopParts;
     private boolean hasDeclarationConflict = false;
+
+    private final Random random = new Random();
     private String initializerVariableName;
 
     public ForToWhileMutation(FileModel originalFile, ForLoopRepository repo) {
@@ -40,12 +40,7 @@ public class ForToWhileMutation extends MutationOperator {
             System.out.println(loop);
         }
 
-        ForLoopNode targetLoop;
-        if (loops.size() > 3) {
-            targetLoop = loops.get(2);
-        } else {
-            targetLoop = loops.get(0);
-        }
+        ForLoopNode targetLoop = loops.get(random.nextInt(loops.size()));
 
         loopParts = repository.findForLoopPartsById(targetLoop.getId());
 
@@ -58,7 +53,7 @@ public class ForToWhileMutation extends MutationOperator {
         if (initializer != null && initializer.getCode() != null && !initializer.getCode().isBlank()) {
             initializerVariableName = extractDeclaredVariableName(initializer.getCode());
 
-            if (initializerVariableName != null && !initializerVariableName.isBlank()) {
+            if (initializerVariableName != null && !initializerVariableName.isBlank() && loopParts.isInitializerDeclaration()) {
                 hasDeclarationConflict = repository.hasInitializerDeclarationConflict(
                         loopParts.getLoop().getId(),
                         initializerVariableName
@@ -119,14 +114,15 @@ public class ForToWhileMutation extends MutationOperator {
         String newBodyText;
         if (bodyLooksLikeBlock) {
             String trimmed = bodyCode.trim();
+            String indentation = (loop.getStartLine() == body.getStartLine())? defaultLoopIndentation() : indentationOf(body);
             if (trimmed.equals("{")) {
-                newBodyText = "{\n" + indentationOf(body) + "    " + iterationCode + ";\n" + indentationOf(body) + "}";
+                newBodyText = "{\n" + indentation + "    " + iterationCode + ";\n" + indentation + "}";
             } else {
                 int insertPos = trimmed.lastIndexOf('}');
                 String prefix = trimmed.substring(0, insertPos).stripTrailing();
                 String suffix = trimmed.substring(insertPos);
-                String iterationStmt = iterationCode.isBlank() ? "" : "\n" + indentationOf(body) + "    " + ensureEndsWithSemicolon(iterationCode);
-                newBodyText = prefix + iterationStmt + "\n" + indentationOf(body) + suffix;
+                String iterationStmt = iterationCode.isBlank() ? "" : "\n" + indentation + ensureEndsWithSemicolon(iterationCode);
+                newBodyText = prefix + iterationStmt + "\n" + indentation + suffix;
             }
         } else {
             String originalStmt = bodyCode.trim();
@@ -178,8 +174,8 @@ public class ForToWhileMutation extends MutationOperator {
         }
 
         // Insert/delete strings
-        if (initializer != null && initializer.getCode() != null && !initializer.getCode().isBlank()) {
-            String initText = initializer.getCode().trim();
+        if (initializer != null && initializer.getCode() != null && !initializer.getCode().isBlank() && !Objects.equals(initializer.getCode(), ";")) {
+            String initText = initializerCode.trim();
 
             String insertText = ensureEndsWithSemicolon(initText);
             String padding = "%1$" + (loop.getStartColumn()-1 + insertText.length()) + "s" ;
@@ -262,6 +258,10 @@ public class ForToWhileMutation extends MutationOperator {
             return "";
         }
         return " ".repeat(node.getStartColumn() - 1);
+    }
+
+    private String defaultLoopIndentation() {
+        return " ".repeat(loopParts.getLoop().getStartColumn() +4);
     }
 
     private String buildNewName(String oldName) {

@@ -80,13 +80,22 @@ public class ForLoopRepository extends NodeRepository implements AutoCloseable {
 
             Record record = result.next();
 
+            List<String> initializerLabels = new ArrayList<>();
+
+            Value initializerNode = record.get("i");
+
+            initializerNode.asNode().labels().forEach(initializerLabels::add);
+            boolean isDeclaration = initializerLabels.contains("DeclarationStatement");
+
             ForLoopNode loop = mapLoop(record.get("n"));
             ForElementNode statement = mapElement("body", record.get("s"));
             ForElementNode initializer = mapElement("initializerStatement", record.get("i"));
             ForElementNode condition = mapElement("condition", record.get("c"));
             ForElementNode iteration = mapElement("iterationStatement", record.get("t"));
 
-            return new ForLoopParts(loop, initializer, condition, iteration, statement);
+
+
+            return new ForLoopParts(loop, initializer, isDeclaration, condition, iteration, statement);
         }
     }
 
