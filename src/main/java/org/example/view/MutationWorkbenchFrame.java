@@ -102,12 +102,12 @@ public class MutationWorkbenchFrame extends JFrame {
 
     private JPanel buildFilesPanel() {
         JPanel panel = new JPanel(new BorderLayout(6, 6));
-        panel.setBorder(BorderFactory.createTitledBorder("Файлы"));
+        panel.setBorder(BorderFactory.createTitledBorder("Files"));
 
         filesList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         filesList.setVisibleRowCount(18);
 
-        JLabel hintLabel = new JLabel("Можно выбрать несколько файлов: Ctrl/Shift + клик");
+        JLabel hintLabel = new JLabel("Possible to select multiple files: Ctrl/Shift + click");
         panel.add(hintLabel, BorderLayout.NORTH);
         panel.add(new JScrollPane(filesList), BorderLayout.CENTER);
 
@@ -314,23 +314,23 @@ public class MutationWorkbenchFrame extends JFrame {
         List<MutationType> selectedMutations = getSelectedMutations();
 
         if (workdir.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Укажи рабочую папку.", "Ошибка", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Select work directory.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         if (selectedFiles.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Выбери хотя бы один файл.", "Ошибка", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Select at least one file.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         if (selectedMutations.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Выбери хотя бы одну мутацию.", "Ошибка", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Select at least one mutation.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         setControlsEnabled(false);
-        appendLog("Запуск обработки...");
-        appendLog("Выбрано файлов: " + selectedFiles.size());
+        appendLog("Start processing...");
+        appendLog("Selected files: " + selectedFiles.size());
 
         Map<MutationType, Map<String, String>> mutationParameters = collectMutationParameters(selectedMutations);
 
@@ -362,10 +362,10 @@ public class MutationWorkbenchFrame extends JFrame {
                 setControlsEnabled(true);
                 try {
                     MutationRunResult result = get();
-                    appendLog("Готово. Сгенерировано файлов: " + result.getGeneratedFiles().size());
+                    appendLog("Done. Generated files: " + result.getGeneratedFiles().size());
                 } catch (Exception ex) {
-                    appendLog("Ошибка выполнения: " + ex.getMessage());
-                    JOptionPane.showMessageDialog(MutationWorkbenchFrame.this, ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+                    appendLog("Process error: " + ex.getMessage());
+                    JOptionPane.showMessageDialog(MutationWorkbenchFrame.this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                 }
             }
         };
