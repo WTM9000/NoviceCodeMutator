@@ -31,7 +31,12 @@ public class TernaryRepository extends NodeRepository implements AutoCloseable {
                 OPTIONAL MATCH (t)-[:CONDITION]->(cond)
                 OPTIONAL MATCH (t)-[:THEN_EXPRESSION]->(thenBranch)
                 OPTIONAL MATCH (t)-[:ELSE_EXPRESSION]->(elseBranch)
-                RETURN t, cond, thenBranch, elseBranch
+                OPTIONAL MATCH (decl:Declaration)-[:INITIALIZER]->(t)
+                OPTIONAL MATCH (decl)-[:TYPE]->(typeNode)
+                    WHERE typeNode.name <> 'bool'
+                RETURN t, cond, thenBranch, elseBranch,
+                       decl.name    AS varName,
+                       typeNode.name AS typeName
                 ORDER BY t.startLine, t.startColumn
                 """;
 
@@ -43,24 +48,32 @@ public class TernaryRepository extends NodeRepository implements AutoCloseable {
             while (result.hasNext()) {
                 Record record = result.next();
 
-                Value t = record.get("t");
-                Value cond = record.get("cond");
-                Value thenVal = record.get("thenBranch");
-                Value elseVal = record.get("elseBranch");
+                Value t        = record.get("t");
+                Value cond     = record.get("cond");
+                Value thenVal  = record.get("thenBranch");
+                Value elseVal  = record.get("elseBranch");
 
                 if (t.isNull() || cond.isNull() || thenVal.isNull() || elseVal.isNull()) {
                     continue;
                 }
 
+                String varName  = asNullableString(record.get("varName"));
+                String typeName = asNullableString(record.get("typeName"));
+
+                boolean isDeclaration = varName != null && typeName != null;
+
                 resultList.add(new TernaryExpressionNode(
                         (int) t.asNode().id(),
                         asNullableInt(cond.get("startLine")),
-                        asNullableInt(cond.get("startColumn"))-1,
+                        asNullableInt(cond.get("startColumn")) - 1,
                         asNullableInt(elseVal.get("endLine")),
                         asNullableInt(elseVal.get("endColumn")),
                         mapArgument(cond),
                         mapArgument(thenVal),
-                        mapArgument(elseVal)
+                        mapArgument(elseVal),
+                        isDeclaration,
+                        typeName,
+                        varName
                 ));
             }
         }
