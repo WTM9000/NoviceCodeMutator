@@ -62,10 +62,13 @@ public class VariableDeclarationHoistRepository extends NodeRepository implement
                 MATCH (declStmt:DeclarationStatement)-[]->(scope)
                 WHERE id(scope) = $scopeId
                 MATCH (declStmt)-[:DECLARATIONS]->(decl:Declaration)
+                MATCH (decl)-[:TYPE]->(t)
+                WHERE t.name <> 'bool'
                 OPTIONAL MATCH (decl)-[:INITIALIZER]->(initializer)
                 RETURN declStmt,
                        id(decl)          AS declId,
                        decl.name         AS varName,
+                       t.name            AS typeName,
                        initializer.code  AS initCode
                 ORDER BY declStmt.startLine, declId
                 """;
@@ -84,16 +87,19 @@ public class VariableDeclarationHoistRepository extends NodeRepository implement
 
                 int startLine = asNullableInt(declStmtValue.get("startLine"));
                 String varName = asNullableString(record.get("varName"));
+                String typeName  = asNullableString(record.get("typeName"));
                 String initCode = asNullableString(record.get("initCode"));
                 long declId = record.get("declId").asLong();
 
                 if (varName == null) continue;
+                if (typeName == null) continue;
 
                 accumulators.computeIfAbsent(startLine, k ->
                         new GroupAccumulator(mapStatementNode(declStmtValue))
                 ).addDeclarator(new SingleDeclarator(
                         (int) declId,
                         varName,
+                        typeName,
                         initCode != null,
                         initCode
                 ));

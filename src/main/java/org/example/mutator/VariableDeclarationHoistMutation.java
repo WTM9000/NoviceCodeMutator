@@ -83,13 +83,11 @@ public class VariableDeclarationHoistMutation extends MutationOperator {
         for (DeclarationStatementGroup group : selectedGroups) {
             String indent = detectIndent(newLines,
                     group.getDeclarationStatement().getStartLine());
-            String type = extractTypeFromCode(
-                    group.getDeclarationStatement().getCode(),
-                    group.getDeclarators().get(0).getVariableName());
-            if (type == null) continue;
-
             for (SingleDeclarator declarator : group.getDeclarators()) {
-                declarationsToHoist.add(indent + type + " "
+                String typeName = declarator.getTypeName();
+                if (typeName == null || typeName.isBlank()) continue;
+
+                declarationsToHoist.add(indent + typeName + " "
                         + declarator.getVariableName() + ";");
             }
         }
@@ -137,23 +135,6 @@ public class VariableDeclarationHoistMutation extends MutationOperator {
         String newName = buildNewName(originalFile.getFileName());
         Path newPath = originalFile.getFilePath().getParent().resolve(newName);
         return new FileModel(newName, newPath, newLines);
-    }
-
-    // Извлекает тип из кода: "unsigned int a = 1, b;" → "unsigned int"
-    private String extractTypeFromCode(String code, String firstVarName) {
-        if (code == null || firstVarName == null) return null;
-
-        String clean = code.trim();
-        if (clean.endsWith(";")) {
-            clean = clean.substring(0, clean.length() - 1).trim();
-        }
-
-        // Ищем первое вхождение имени первой переменной — всё левее это тип
-        // Используем первую переменную, потому что в multi-declarator тип стоит только один раз
-        int namePos = clean.indexOf(firstVarName);
-        if (namePos <= 0) return null;
-
-        return clean.substring(0, namePos).trim();
     }
 
     private String detectIndent(List<String> lines, int startLine) {
