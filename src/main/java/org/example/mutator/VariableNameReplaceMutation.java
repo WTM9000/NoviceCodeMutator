@@ -1,17 +1,21 @@
 package org.example.mutator;
 
 import org.example.model.FileModel;
+import org.example.model.IfRootNode;
 import org.example.model.VariableNode;
 import org.example.neo4j.repository.VariableRepository;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class VariableNameReplaceMutation extends MutationOperator {
 
     private List<VariableNode> variablesToChange = null;
+    private final Random random = new Random();
 
     private String newVariableName;
 
@@ -36,11 +40,7 @@ public class VariableNameReplaceMutation extends MutationOperator {
             System.out.println(variable);
         }
 
-        VariableNode targetVariable;
-
-        if (variables.size() > 3 ){
-            targetVariable = variables.get(2);
-        } else targetVariable = variables.get(0);
+        VariableNode targetVariable = variables.get(random.nextInt(variables.size()));
 
         variablesToChange = repository.findAllReferencesToVariable(targetVariable.getId());
 
@@ -59,7 +59,7 @@ public class VariableNameReplaceMutation extends MutationOperator {
         }
 
         FileModel mutatedFile = originalFile;
-        List<String> newLines = originalFile.getLines();
+        List<String> newLines = new ArrayList<>(originalFile.getLines());
 
         for(VariableNode variable: variablesToChange){
             String stringToChange = mutatedFile.getLines().get(variable.getLine()-1);
@@ -102,6 +102,7 @@ public class VariableNameReplaceMutation extends MutationOperator {
         String date = now.format(DateTimeFormatter.ofPattern("dd_MM_yyyy"));
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("%s_%s", date, time));
+        sb.append("_varname_replace");
 
         String newName;
         if (lastDot > 0) {

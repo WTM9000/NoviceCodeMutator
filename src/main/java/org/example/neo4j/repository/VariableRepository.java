@@ -76,9 +76,7 @@ public class VariableRepository extends NodeRepository implements AutoCloseable 
         List<VariableNode> resultList = new ArrayList<>();
 
         try (Session session = driver.session()) {
-            Result result = session.run(cypher);
-
-
+            Result result = session.run(cypher, java.util.Map.of("referenceId", referenceId));
 
             while (result.hasNext()) {
                 Record record = result.next();
