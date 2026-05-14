@@ -61,9 +61,54 @@ public class VariableRepository extends NodeRepository implements AutoCloseable 
     public List<VariableNode> findAllReferencesToVariable(int referenceId){
         String cypher = """
                 MATCH (decl)
-                WHERE id(decl) = """ + referenceId + """
+                WHERE id(decl) = $referenceId
                                 
                 MATCH (use)-[:REFERS_TO]->(decl)
+                                
+                RETURN id(use) AS id,
+                       use.name AS name,
+                       use.startLine AS line,
+                       use.startColumn as column
+                       
+                ORDER BY use.startLine DESC, use.startColumn DESC;
+                """;
+
+        List<VariableNode> resultList = new ArrayList<>();
+
+        try (Session session = driver.session()) {
+            Result result = session.run(cypher);
+
+
+
+            while (result.hasNext()) {
+                Record record = result.next();
+
+                if (record.get("id").isNull()){
+                    return resultList;
+                }
+
+                int id = record.get("id").asInt();
+                String name = asNullableString(record.get("name"));
+                int line = (record.get("line").asInt());
+                int column = record.get("column").asInt();
+
+                resultList.add(new VariableNode(id, name, line, column));
+            }
+        }
+
+        return resultList;
+    }
+
+    public List<VariableNode> findWrappableReferences(){
+        String cypher = """
+                MATCH (use)-[:REFERS_TO]->(decl:VariableDeclaration)
+                WHERE (NOT EXISTS {
+                  MATCH (stmt)-[:OPERATOR_BASE]->(use)
+                  WHERE stmt.name = "++" OR stmt.name = "--"
+                }
+                AND NOT EXISTS {
+                  MATCH (assign:AssignExpression)-[:LHS]->(use)
+                })
                                 
                 RETURN id(use) AS id,
                        use.name AS name,

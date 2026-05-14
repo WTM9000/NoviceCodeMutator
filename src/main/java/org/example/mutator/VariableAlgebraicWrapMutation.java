@@ -27,34 +27,11 @@ public class VariableAlgebraicWrapMutation extends MutationOperator {
         return originalFile;
     }
 
-    public List<VariableNode> getVariablesToChange() {
-        return variablesToChange;
-    }
-
     @Override
     protected void getRelevantNodes() {
         VariableRepository repository = (VariableRepository) this.repo;
 
-        List<VariableNode> variables = repository.findAllVariableDeclarations();
-
-        if (variables.isEmpty()) {
-            System.out.println("No variable declarations found.");
-            return;
-        }
-
-        List<VariableNode> allUsages = new ArrayList<>();
-
-        for (VariableNode variable : variables) {
-            List<VariableNode> references = repository.findAllReferencesToVariable(variable.getId());
-            if (references != null && !references.isEmpty()) {
-                allUsages.addAll(references);
-            }
-        }
-
-        if (allUsages.isEmpty()) {
-            System.out.println("No variable usages found.");
-            return;
-        }
+        List<VariableNode> allUsages = repository.findWrappableReferences();
 
         variablesToChange = new ArrayList<>();
         VariableNode selected = allUsages.get(random.nextInt(allUsages.size()));
@@ -130,6 +107,7 @@ public class VariableAlgebraicWrapMutation extends MutationOperator {
         String date = now.format(DateTimeFormatter.ofPattern("dd_MM_yyyy"));
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("%s_%s", date, time));
+        sb.append("_algebraicWrap");
 
         String newName;
         if (lastDot > 0) {
