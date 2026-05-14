@@ -81,9 +81,9 @@ public class BooleanAssignmentRepository extends NodeRepository implements AutoC
 
                 // oneLineDirectBody: родитель stmt — ControlStructure, но НЕ через Block.
                 // Если родитель — Block, тело уже обёрнуто в фигурные скобки.
-                boolean oneLineDirectBody = isOneLineDirectBody(parent, stmt);
+                boolean oneLineDirectBody = isOneLineDirectBody(stmt, assign);
 
-                // В runQuery, после получения stmt:
+                // В runQuery, после получения String:
                 List<String> stmtLabels = new ArrayList<>();
 
                 stmt.asNode().labels().forEach(stmtLabels::add);
@@ -156,7 +156,7 @@ public class BooleanAssignmentRepository extends NodeRepository implements AutoC
                     continue;
                 }
 
-                boolean oneLineDirectBody = isOneLineDirectBody(parent, stmt);
+                boolean oneLineDirectBody = isOneLineDirectBody(stmt, decl);
 
                 StatementNode declarationNode = mapStatementNode(record.get("declarationNode"));
 
