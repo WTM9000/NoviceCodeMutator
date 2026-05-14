@@ -31,11 +31,11 @@ public class ContinueAntiIdiomRepository extends NodeRepository implements AutoC
                 WHERE loop:LoopStatement
                 MATCH (loop)-[:AST]->(body:Block)
                 MATCH (body)-[:AST]->(ifNode)
-                WHERE ifNode:IfStatement
                 WITH loop, body, ifNode
                 ORDER BY ifNode.startLine, ifNode.startColumn
                 WITH loop, body, collect(ifNode) AS ifNodes
                 WITH loop, body, last(ifNodes) AS ifNode
+                WHERE ifNode:IfStatement
                 MATCH (ifNode)-[:CONDITION]->(cond)
                 MATCH (ifNode)-[:THEN_STATEMENT]->(thenNode)
                 OPTIONAL MATCH (ifNode)-[:ELSE_STATEMENT]->(elseNode)
@@ -138,8 +138,6 @@ public class ContinueAntiIdiomRepository extends NodeRepository implements AutoC
 
         String normalized = code.replaceAll("\\s+", " ").trim().toLowerCase();
         return normalized.contains("log")
-                || normalized.contains("printf")
-                || normalized.contains("fprintf")
                 || normalized.contains("trace")
                 || normalized.contains("debug")
                 || normalized.contains("counter");
