@@ -11,8 +11,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -33,14 +36,29 @@ public class MutationApplicationService {
             throw new IllegalArgumentException("Bad working directory: " + workdir);
         }
 
-        try (Stream<Path> stream = Files.walk(workdir)) {
-            return stream
-                    .filter(Files::isRegularFile)
-                    .map(workdir::relativize)
-                    .map(Path::toString)
-                    .sorted(Comparator.naturalOrder())
-                    .collect(Collectors.toList());
-        }
+        List<String> result = new ArrayList<>();
+
+        Files.walkFileTree(workdir, new SimpleFileVisitor<>() {
+
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                // Пропускаем папку .git и всё её содержимое
+                if (dir.getFileName() != null
+                        && dir.getFileName().toString().equals(".git")) {
+                    return FileVisitResult.SKIP_SUBTREE;
+                }
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                result.add(workdir.relativize(file).toString());
+                return FileVisitResult.CONTINUE;
+            }
+        });
+
+        result.sort(Comparator.naturalOrder());
+        return result;
     }
 
     public MutationRunResult run(MutationRunRequest request, Consumer<String> logger) {
@@ -139,21 +157,6 @@ public class MutationApplicationService {
             throw new RuntimeException(ex);
         }
     }
-
-//    private FileModel applyMutation(FileModel fileModel,
-//                                    MutationType mutationType,
-//                                    MutationRunRequest request,
-//                                    Consumer<String> logger) {
-//        switch (mutationType) {
-//            case VARIABLE_NAME_REPLACE:
-//                logger.accept("Mutation " + mutationType.value() + " временно отключена: сейчас пропущены запросы к БД.");
-//                logger.accept("UI и пайплайн готовы, подключение можно включить позже без переделки формы.");
-//                return null;
-//            default:
-//                logger.accept("Неизвестная мутация: " + mutationType.value());
-//                return null;
-//        }
-//    }
 
     private FileModel applyMutationWithRepository(FileModel fileModel,
                                                   MutationType mutationType,
