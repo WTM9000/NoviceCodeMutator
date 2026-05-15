@@ -70,25 +70,24 @@ public class WhileToForMutation extends MutationOperator {
         List<String> newLines = new ArrayList<>(originalFile.getLines());
 
         String conditionCode = (condition != null && condition.getCode() != null && !condition.getCode().isBlank())
-                ? condition.getCode()
+                ? condition.getCode().strip()
                 : "true";
 
         String forHeader = "for (; " + conditionCode + ";)";
 
-        // Определяем конец старого заголовка while — это начало тела
-        int oldHeaderEndColumn;
-        if (loop.getStartLine() == body.getStartLine()) {
-            oldHeaderEndColumn = body.getStartColumn() - 1;
-        } else {
-            oldHeaderEndColumn = newLines.get(loop.getStartLine() - 1).length() + 1;
-        }
+        // Конец заголовка while — ровно одна позиция перед началом тела.
+        // Это корректно работает и для однострочного, и для многострочного
+        // условия: applyEdit удалит все строки от начала while до начала тела
+        // и вставит вместо них одну строку с for-заголовком.
+        int headerEndLine   = body.getStartLine();
+        int headerEndColumn = body.getStartColumn() - 1;
 
         applyEdit(newLines, new TextEdit(
                 loop.getStartLine(),
                 loop.getStartColumn(),
-                loop.getStartLine(),
-                oldHeaderEndColumn,
-                forHeader
+                headerEndLine,
+                headerEndColumn,
+                forHeader + " "
         ));
 
         String newName = buildNewName(originalFile.getFileName());
@@ -102,32 +101,43 @@ public class WhileToForMutation extends MutationOperator {
         return "While To For Replacement";
     }
 
+    /**
+     * Заменяет текст от (startLine, startColumn) до (endLine, endColumn)
+     * строкой replacement.
+     *
+     * Если диапазон многострочный — все промежуточные строки удаляются,
+     * prefix первой строки и suffix последней склеиваются с replacement.
+     */
     private void applyEdit(List<String> lines, TextEdit edit) {
-        int startLineIndex = edit.getStartLine() - 1;
-        int startColumnIndex = edit.getStartColumn() - 1;
-        int endLineIndex = edit.getEndLine() - 1;
-        int endColumnIndex = edit.getEndColumn() - 1;
+        int startLineIdx = edit.getStartLine() - 1;
+        int startColIdx  = edit.getStartColumn() - 1;
+        int endLineIdx   = edit.getEndLine() - 1;
+        int endColIdx    = edit.getEndColumn() - 1;
 
-        if (startLineIndex == endLineIndex) {
-            String line = lines.get(startLineIndex);
-            String updated = line.substring(0, startColumnIndex)
+        // Граничные случаи: защита от выхода за пределы строки
+        String firstLine = lines.get(startLineIdx);
+        String lastLine  = lines.get(endLineIdx);
+
+        startColIdx = Math.max(0, Math.min(startColIdx, firstLine.length()));
+        endColIdx   = Math.max(0, Math.min(endColIdx,   lastLine.length()));
+
+        if (startLineIdx == endLineIdx) {
+            String updated = firstLine.substring(0, startColIdx)
                     + edit.getReplacement()
-                    + line.substring(endColumnIndex);
-            lines.set(startLineIndex, updated);
+                    + firstLine.substring(endColIdx);
+            lines.set(startLineIdx, updated);
             return;
         }
 
-        String firstLine = lines.get(startLineIndex);
-        String lastLine = lines.get(endLineIndex);
+        String prefix = firstLine.substring(0, startColIdx);
+        String suffix = lastLine.substring(endColIdx);
 
-        String prefix = firstLine.substring(0, startColumnIndex);
-        String suffix = lastLine.substring(endColumnIndex);
-
-        for (int i = endLineIndex; i > startLineIndex; i--) {
+        // Удаляем все строки диапазона снизу вверх, кроме первой
+        for (int i = endLineIdx; i > startLineIdx; i--) {
             lines.remove(i);
         }
 
-        lines.set(startLineIndex, prefix + edit.getReplacement() + suffix);
+        lines.set(startLineIdx, prefix + edit.getReplacement() + suffix);
     }
 
     private String buildNewName(String oldName) {
@@ -151,17 +161,17 @@ public class WhileToForMutation extends MutationOperator {
         private final String replacement;
 
         public TextEdit(int startLine, int startColumn, int endLine, int endColumn, String replacement) {
-            this.startLine = startLine;
+            this.startLine   = startLine;
             this.startColumn = startColumn;
-            this.endLine = endLine;
-            this.endColumn = endColumn;
+            this.endLine     = endLine;
+            this.endColumn   = endColumn;
             this.replacement = replacement;
         }
 
-        public int getStartLine() { return startLine; }
-        public int getStartColumn() { return startColumn; }
-        public int getEndLine() { return endLine; }
-        public int getEndColumn() { return endColumn; }
+        public int getStartLine()    { return startLine; }
+        public int getStartColumn()  { return startColumn; }
+        public int getEndLine()      { return endLine; }
+        public int getEndColumn()    { return endColumn; }
         public String getReplacement() { return replacement; }
     }
 }
