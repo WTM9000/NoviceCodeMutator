@@ -8,8 +8,6 @@ import org.example.model.StatementNode;
 import org.example.neo4j.repository.IfElseChainRepository;
 
 import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -70,16 +68,18 @@ public class IfElseToSequentialIfMutation extends MutationOperator {
         }
 
         int startLineIndex = whole.getStartLine() - 1;
-        int endLineIndex = whole.getEndLine() - 1;
+        int endLineIndex   = whole.getEndLine() - 1;
 
-        if (startLineIndex < 0 || endLineIndex >= originalFile.getLines().size() || startLineIndex > endLineIndex) {
+        if (startLineIndex < 0
+                || endLineIndex >= originalFile.getLines().size()
+                || startLineIndex > endLineIndex) {
             System.out.println("Invalid statement bounds for selected if-else chain.");
             return null;
         }
 
         List<String> newLines = new ArrayList<>(originalFile.getLines());
 
-        String firstLine = originalFile.getLines().get(startLineIndex);
+        String firstLine   = originalFile.getLines().get(startLineIndex);
         String indentation = leadingWhitespace(firstLine);
 
         List<String> replacementLines = buildSequentialIfLines(indentation, selectedChain);
@@ -93,7 +93,7 @@ public class IfElseToSequentialIfMutation extends MutationOperator {
         }
 
         String newName = buildNewName(originalFile.getFileName(), "_ifelse_to_seqif");
-        Path newPath = originalFile.getFilePath().getParent().resolve(newName);
+        Path   newPath = originalFile.getFilePath().getParent().resolve(newName);
 
         return new FileModel(newName, newPath, newLines);
     }
@@ -103,26 +103,38 @@ public class IfElseToSequentialIfMutation extends MutationOperator {
         return "If-Else To Sequential If Mutation";
     }
 
+    /**
+     * Строит список строк замены. Каждый элемент списка — ровно одна строка
+     * без символов '\n' внутри. Многострочные блоки (тела if/else из графа)
+     * разбиваются через splitByNewline перед добавлением в результат.
+     */
     private List<String> buildSequentialIfLines(String indentation, IfElseChainNode chain) {
-        List<String> result = new ArrayList<>();
+        List<String> result            = new ArrayList<>();
         List<String> negatedConditions = new ArrayList<>();
 
         for (IfBranchNode branch : chain.getBranches()) {
             String conditionCode = safeCode(branch.getCondition()).trim();
-            String blockCode = normalizeBlock(safeCode(branch.getBlock()).trim());
+            String blockCode     = normalizeBlock(safeCode(branch.getBlock()).trim());
 
             String combinedCondition = negatedConditions.isEmpty()
                     ? conditionCode
                     : String.join(" && ", negatedConditions) + " && " + conditionCode;
 
-            result.add(indentation + "if (" + combinedCondition + ") " + blockCode);
+            String ifLine = indentation + "if (" + combinedCondition + ") " + blockCode;
+
+            // Многострочный blockCode (блок с \n внутри) разбиваем на отдельные строки
+            splitByNewline(ifLine).forEach(result::add);
+
             negatedConditions.add("!(" + conditionCode + ")");
         }
 
         if (chain.getElseBlock() != null) {
             String elseCondition = String.join(" && ", negatedConditions);
             if (!elseCondition.isBlank()) {
-                result.add(indentation + "if (" + elseCondition + ") " + normalizeBlock(safeCode(chain.getElseBlock()).trim()));
+                String ifLine = indentation + "if (" + elseCondition + ") "
+                        + normalizeBlock(safeCode(chain.getElseBlock()).trim());
+
+                splitByNewline(ifLine).forEach(result::add);
             }
         }
 
@@ -145,6 +157,23 @@ public class IfElseToSequentialIfMutation extends MutationOperator {
         }
 
         return "{ " + trimmed + "; }";
+    }
+
+    /**
+     * Разбивает строку по символу '\n'.
+     * Не теряет trailing-пустые строки (в отличие от String.split()).
+     */
+    private List<String> splitByNewline(String text) {
+        List<String> result = new ArrayList<>();
+        int start = 0;
+        for (int i = 0; i < text.length(); i++) {
+            if (text.charAt(i) == '\n') {
+                result.add(text.substring(start, i));
+                start = i + 1;
+            }
+        }
+        result.add(text.substring(start));
+        return result;
     }
 
     private String safeCode(StatementNode node) {
