@@ -2,12 +2,9 @@ package org.example.mutator;
 
 import org.example.model.ContinueAntiIdiomCandidate;
 import org.example.model.FileModel;
-import org.example.model.StatementNode;
 import org.example.neo4j.repository.ContinueAntiIdiomRepository;
 
 import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -62,7 +59,7 @@ public class ContinueAntiIdiomMutation extends MutationOperator {
             newLines.add(startLineIndex, replacement.get(i));
         }
 
-        String newName = buildNewName(originalFile.getFileName());
+        String newName = buildNewName(originalFile.getFileName(), "_continue_anti_idiom");
         Path newPath = originalFile.getFilePath().getParent().resolve(newName);
         return new FileModel(newName, newPath, newLines);
     }
@@ -143,19 +140,6 @@ public class ContinueAntiIdiomMutation extends MutationOperator {
             i++;
         }
         return line.substring(0, i);
-    }
-
-    private String buildNewName(String oldName) {
-        int lastDot = oldName.lastIndexOf('.');
-        String suffix = "_" + LocalDateTime.now()
-                .format(DateTimeFormatter.ofPattern("dd_MM_yyyy_ss_mm_HH"))
-                + "_continue_anti_idiom";
-
-        if (lastDot > 0) {
-            return oldName.substring(0, lastDot) + suffix + oldName.substring(lastDot);
-        }
-
-        return oldName + suffix;
     }
 
     @Override

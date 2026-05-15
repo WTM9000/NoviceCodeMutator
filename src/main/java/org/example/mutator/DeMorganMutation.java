@@ -69,7 +69,7 @@ public class DeMorganMutation extends MutationOperator {
 
         newLines.set(lineIndex, newLine);
 
-        String newName = buildNewName(originalFile.getFileName());
+        String newName = buildNewName(originalFile.getFileName(), "_de_morgan");
         Path newPath = originalFile.getFilePath().getParent().resolve(newName);
 
         return new FileModel(newName, newPath, newLines);
@@ -101,18 +101,5 @@ public class DeMorganMutation extends MutationOperator {
             return false;
         }
         return trimmed.contains(" ");
-    }
-
-    private String buildNewName(String oldName) {
-        int lastDot = oldName.lastIndexOf('.');
-        LocalDateTime now = LocalDateTime.now();
-        String suffix = "_" + now.format(DateTimeFormatter.ofPattern("dd_MM_yyyy"))
-                + "_" + now.format(DateTimeFormatter.ofPattern("ss_mm_HH"))
-                + "_de_morgan";
-
-        if (lastDot > 0) {
-            return oldName.substring(0, lastDot) + suffix + oldName.substring(lastDot);
-        }
-        return oldName + suffix;
     }
 }

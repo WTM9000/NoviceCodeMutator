@@ -8,8 +8,8 @@ import java.util.Objects;
  * FileModel: represents a file that will be processed into a CPG and uploaded to Neo4j.
  */
 public class FileModel {
-    private final String fileName;
-    private final Path filePath;
+    private String fileName;
+    private Path filePath;
     private final List<String> lines;
 
     public FileModel(String fileName, Path filePath, List<String> lines) {
@@ -20,6 +20,11 @@ public class FileModel {
 
     public String getFileName() {
         return fileName;
+    }
+
+    public void setFileName(String newName){
+        this.fileName = newName;
+        this.filePath = filePath.getParent().resolve(newName);
     }
 
     public Path getFilePath() {

@@ -75,7 +75,7 @@ public class TernaryToIfElseMutation extends MutationOperator {
             newLines.add(startLineIndex, replacement.get(i));
         }
 
-        String newName = buildNewName(originalFile.getFileName());
+        String newName = buildNewName(originalFile.getFileName(), "ternary_to_if");
         Path newPath = originalFile.getFilePath().getParent().resolve(newName);
 
         return new FileModel(newName, newPath, newLines);
@@ -167,18 +167,5 @@ public class TernaryToIfElseMutation extends MutationOperator {
             i++;
         }
         return line.substring(0, i);
-    }
-
-    private String buildNewName(String oldName) {
-        int lastDot = oldName.lastIndexOf('.');
-        LocalDateTime now = LocalDateTime.now();
-        String suffix = "_" + now.format(DateTimeFormatter.ofPattern("dd_MM_yyyy"))
-                + "_" + now.format(DateTimeFormatter.ofPattern("ss_mm_HH"))
-                + "_ternary_to_if";
-
-        if (lastDot > 0) {
-            return oldName.substring(0, lastDot) + suffix + oldName.substring(lastDot);
-        }
-        return oldName + suffix;
     }
 }

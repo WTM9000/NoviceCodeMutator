@@ -73,15 +73,9 @@ public class VariableNameReplaceMutation extends MutationOperator {
             newLines.set(variable.getLine()-1, newString.toString());
         }
 
-        String newName = buildNewName(originalFile.getFileName());
+        String newName = buildNewName(originalFile.getFileName(), "_varname_replace");
 
-        System.out.print(newName);
-
-        String newPathString = buildNewName(originalFile.getFilePath().toString());
-
-        System.out.print(newPathString);
-
-        Path newPath = originalFile.getFilePath().getParent().resolve(newPathString);
+        Path newPath = originalFile.getFilePath().getParent().resolve(newName);
 
         mutatedFile = new FileModel(newName, newPath, newLines);
 
@@ -91,27 +85,5 @@ public class VariableNameReplaceMutation extends MutationOperator {
     @Override
     public String getMutationName() {
         return "Replaced Variable Name";
-    }
-
-    private String buildNewName(String oldName){
-        String filename = oldName;
-        int lastDot = filename.lastIndexOf('.');
-
-        LocalDateTime now = LocalDateTime.now();
-        String time = now.format(DateTimeFormatter.ofPattern("ss_mm_HH"));
-        String date = now.format(DateTimeFormatter.ofPattern("dd_MM_yyyy"));
-        StringBuilder sb = new StringBuilder();
-        sb.append(String.format("%s_%s", date, time));
-        sb.append("_varname_replace");
-
-        String newName;
-        if (lastDot > 0) {
-            String base = filename.substring(0, lastDot);
-            String ext = filename.substring(lastDot); // includes dot
-            newName = base + sb + ext;
-        } else {
-            newName = filename + sb;
-        }
-        return newName;
     }
 }

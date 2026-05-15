@@ -68,9 +68,8 @@ public class VariableAlgebraicWrapMutation extends MutationOperator {
 
         newLines.set(variable.getLine() - 1, newString.toString());
 
-        String newName = buildNewName(originalFile.getFileName());
-        String newPathString = buildNewName(originalFile.getFilePath().toString());
-        Path newPath = originalFile.getFilePath().getParent().resolve(newPathString);
+        String newName = buildNewName(originalFile.getFileName(), "_algebraicWrap");
+        Path newPath = originalFile.getFilePath().getParent().resolve(newName);
 
         mutatedFile = new FileModel(newName, newPath, newLines);
         return mutatedFile;
@@ -96,28 +95,5 @@ public class VariableAlgebraicWrapMutation extends MutationOperator {
             case "/" -> "(" + variableName + " / 1)";
             default -> throw new IllegalArgumentException("Unsupported operator: " + operator);
         };
-    }
-
-    private String buildNewName(String oldName) {
-        String filename = oldName;
-        int lastDot = filename.lastIndexOf('.');
-
-        LocalDateTime now = LocalDateTime.now();
-        String time = now.format(DateTimeFormatter.ofPattern("ss_mm_HH"));
-        String date = now.format(DateTimeFormatter.ofPattern("dd_MM_yyyy"));
-        StringBuilder sb = new StringBuilder();
-        sb.append(String.format("%s_%s", date, time));
-        sb.append("_algebraicWrap");
-
-        String newName;
-        if (lastDot > 0) {
-            String base = filename.substring(0, lastDot);
-            String ext = filename.substring(lastDot);
-            newName = base + sb + ext;
-        } else {
-            newName = filename + sb;
-        }
-
-        return newName;
     }
 }

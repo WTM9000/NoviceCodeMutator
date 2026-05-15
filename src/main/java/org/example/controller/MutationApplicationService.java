@@ -131,6 +131,8 @@ public class MutationApplicationService {
                 }
 
                 if (hasSuccessfulMutation) {
+                    lastMutatedFile.setFileName(buildNewName(lastMutatedFile.getFileName()));
+
                     fileModelWriter.writeUsingModelFileName(lastMutatedFile);
                     logger.accept("Final mutated file created: " + lastMutatedFile.getFilePath());
 
@@ -292,6 +294,18 @@ public class MutationApplicationService {
         } catch (IOException ex) {
             logger.accept("Failed to delete temporary file: " + tempPath + ". Reason: " + ex.getMessage());
         }
+    }
+
+    protected String buildNewName(String oldName) {
+        int lastDot = oldName.lastIndexOf('.');
+        String suffix = "_" + LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("dd_MM_yyyy_ss_mm_HH"));
+
+        if (lastDot > 0) {
+            return oldName.substring(0, lastDot) + suffix + oldName.substring(lastDot);
+        }
+
+        return oldName + suffix;
     }
 
     private boolean isBlank(String value) {

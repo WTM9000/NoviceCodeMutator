@@ -90,7 +90,7 @@ public class WhileToForMutation extends MutationOperator {
                 forHeader + " "
         ));
 
-        String newName = buildNewName(originalFile.getFileName());
+        String newName = buildNewName(originalFile.getFileName(), "while_to_for");
         Path newPath = originalFile.getFilePath().getParent().resolve(newName);
 
         return new FileModel(newName, newPath, newLines);
@@ -138,19 +138,6 @@ public class WhileToForMutation extends MutationOperator {
         }
 
         lines.set(startLineIdx, prefix + edit.getReplacement() + suffix);
-    }
-
-    private String buildNewName(String oldName) {
-        int lastDot = oldName.lastIndexOf('.');
-        LocalDateTime now = LocalDateTime.now();
-        String suffix = "_" + now.format(DateTimeFormatter.ofPattern("dd_MM_yyyy"))
-                + "_" + now.format(DateTimeFormatter.ofPattern("ss_mm_HH"))
-                + "_while_to_for";
-
-        if (lastDot > 0) {
-            return oldName.substring(0, lastDot) + suffix + oldName.substring(lastDot);
-        }
-        return oldName + suffix;
     }
 
     private static class TextEdit {

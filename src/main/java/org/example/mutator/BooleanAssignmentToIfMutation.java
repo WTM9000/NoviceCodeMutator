@@ -201,7 +201,7 @@ public class BooleanAssignmentToIfMutation extends MutationOperator {
     }
 
     private FileModel buildResult(List<String> newLines) {
-        String newName = buildNewName(originalFile.getFileName());
+        String newName = buildNewName(originalFile.getFileName(), "_bool_assign_to_if");
         Path newPath = originalFile.getFilePath().getParent().resolve(newName);
         return new FileModel(newName, newPath, newLines);
     }
@@ -238,21 +238,6 @@ public class BooleanAssignmentToIfMutation extends MutationOperator {
             i++;
         }
         return line.substring(0, i);
-    }
-
-    private String buildNewName(String oldName) {
-        int lastDot = oldName.lastIndexOf('.');
-
-        LocalDateTime now = LocalDateTime.now();
-        String date = now.format(DateTimeFormatter.ofPattern("dd_MM_yyyy"));
-        String time = now.format(DateTimeFormatter.ofPattern("ss_mm_HH"));
-        String suffix = "_" + date + "_" + time + "_bool_assign_to_if";
-
-        if (lastDot > 0) {
-            return oldName.substring(0, lastDot) + suffix + oldName.substring(lastDot);
-        }
-
-        return oldName + suffix;
     }
 
     @Override

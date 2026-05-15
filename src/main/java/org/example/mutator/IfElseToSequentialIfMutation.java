@@ -92,7 +92,7 @@ public class IfElseToSequentialIfMutation extends MutationOperator {
             newLines.add(startLineIndex, replacementLines.get(i));
         }
 
-        String newName = buildNewName(originalFile.getFileName());
+        String newName = buildNewName(originalFile.getFileName(), "_ifelse_to_seqif");
         Path newPath = originalFile.getFilePath().getParent().resolve(newName);
 
         return new FileModel(newName, newPath, newLines);
@@ -157,18 +157,5 @@ public class IfElseToSequentialIfMutation extends MutationOperator {
             i++;
         }
         return line.substring(0, i);
-    }
-
-    private String buildNewName(String oldName) {
-        int lastDot = oldName.lastIndexOf('.');
-        LocalDateTime now = LocalDateTime.now();
-        String suffix = "_" + now.format(DateTimeFormatter.ofPattern("dd_MM_yyyy"))
-                + "_" + now.format(DateTimeFormatter.ofPattern("ss_mm_HH"))
-                + "_ifelse_to_seqif";
-
-        if (lastDot > 0) {
-            return oldName.substring(0, lastDot) + suffix + oldName.substring(lastDot);
-        }
-        return oldName + suffix;
     }
 }

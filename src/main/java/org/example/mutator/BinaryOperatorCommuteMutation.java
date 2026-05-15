@@ -91,9 +91,8 @@ public class BinaryOperatorCommuteMutation extends MutationOperator {
 
         newLines.set(lineIndex, newLine);
 
-        String newName = buildNewName(originalFile.getFileName());
-        String newPathString = buildNewName(originalFile.getFilePath().toString());
-        Path newPath = originalFile.getFilePath().getParent().resolve(newPathString);
+        String newName = buildNewName(originalFile.getFileName(), "binary_commute");
+        Path newPath = originalFile.getFilePath().getParent().resolve(newName);
 
         return new FileModel(newName, newPath, newLines);
     }
@@ -103,25 +102,4 @@ public class BinaryOperatorCommuteMutation extends MutationOperator {
         return "Binary Operator Commute";
     }
 
-    private String buildNewName(String oldName) {
-        String filename = oldName;
-        int lastDot = filename.lastIndexOf('.');
-
-        LocalDateTime now = LocalDateTime.now();
-        String time = now.format(DateTimeFormatter.ofPattern("ss_mm_HH"));
-        String date = now.format(DateTimeFormatter.ofPattern("dd_MM_yyyy"));
-        StringBuilder sb = new StringBuilder();
-        sb.append(String.format("%s_%s", date, time));
-
-        String newName;
-        if (lastDot > 0) {
-            String base = filename.substring(0, lastDot);
-            String ext = filename.substring(lastDot);
-            newName = base + sb + ext;
-        } else {
-            newName = filename + sb;
-        }
-
-        return newName;
-    }
 }

@@ -85,7 +85,7 @@ public class NegatedComparisonMutation extends MutationOperator {
 
         newLines.set(lineIndex, newLine);
 
-        String newName = buildNewName(originalFile.getFileName());
+        String newName = buildNewName(originalFile.getFileName(), "_negated_comparison");
         Path newPath = originalFile.getFilePath().getParent().resolve(newName);
 
         return new FileModel(newName, newPath, newLines);
@@ -102,18 +102,5 @@ public class NegatedComparisonMutation extends MutationOperator {
 
         // !(a < b) -> a >= b: скобки и отрицание убираются полностью
         return left.getCode() + " " + invertedOperator + " " + right.getCode();
-    }
-
-    private String buildNewName(String oldName) {
-        int lastDot = oldName.lastIndexOf('.');
-        LocalDateTime now = LocalDateTime.now();
-        String suffix = "_" + now.format(DateTimeFormatter.ofPattern("dd_MM_yyyy"))
-                + "_" + now.format(DateTimeFormatter.ofPattern("ss_mm_HH"))
-                + "_negated_comparison";
-
-        if (lastDot > 0) {
-            return oldName.substring(0, lastDot) + suffix + oldName.substring(lastDot);
-        }
-        return oldName + suffix;
     }
 }

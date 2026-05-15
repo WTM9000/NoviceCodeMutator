@@ -61,7 +61,7 @@ public class ElseIfFlattenMutation extends MutationOperator {
             newLines.add(startLineIndex, replacement.get(i));
         }
 
-        String newName = buildNewName(originalFile.getFileName());
+        String newName = buildNewName(originalFile.getFileName(), "_elseif_flatten");
         Path newPath = originalFile.getFilePath().getParent().resolve(newName);
         return new FileModel(newName, newPath, newLines);
     }
@@ -113,16 +113,6 @@ public class ElseIfFlattenMutation extends MutationOperator {
         int i = 0;
         while (i < line.length() && Character.isWhitespace(line.charAt(i))) i++;
         return line.substring(0, i);
-    }
-
-    private String buildNewName(String oldName) {
-        int lastDot = oldName.lastIndexOf('.');
-        String suffix = "_" + LocalDateTime.now()
-                .format(DateTimeFormatter.ofPattern("dd_MM_yyyy_ss_mm_HH"))
-                + "_elseif_flatten";
-        if (lastDot > 0)
-            return oldName.substring(0, lastDot) + suffix + oldName.substring(lastDot);
-        return oldName + suffix;
     }
 
     @Override
