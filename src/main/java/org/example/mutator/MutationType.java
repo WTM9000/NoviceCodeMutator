@@ -9,6 +9,7 @@ public enum MutationType {
     SYNCHRONIZED_VARIABLES("SynchronizedVariables"),
     EMPTY_EXPRESSION("EmptyExpression"),
     EMPTY_LOOP("EmptyLoop"),
+    CONTINUE_UNREACHABLE("ContinueUnreachable"),
     VARIABLE_NAME_REPLACE("ReplaceNameVariables"),
     VARIABLE_ALGEBRAIC_WRAP("VariableAlgebraicWrap"),
     BINARY_OPERATOR_COMMUTE("BinaryOperatorCommute"),
