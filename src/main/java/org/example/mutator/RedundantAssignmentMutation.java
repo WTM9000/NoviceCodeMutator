@@ -5,10 +5,7 @@ import org.example.model.SimpleAssignmentNode;
 import org.example.neo4j.repository.SimpleAssignmentRepository;
 
 import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
@@ -73,11 +70,11 @@ public class RedundantAssignmentMutation extends MutationOperator {
     }
 
     /**
-     * Заменяет в строке первое вхождение  "= rhs"  (как RHS присваивания) на  "= rhs = rhs".
+     * Replaces first rhs instanse.
      *
-     * Стратегия: ищем точный фрагмент "= <rhsCode>" в строке.
-     * Используем startColumn/endColumn из графа, если они валидны (>= 0),
-     * иначе делаем текстовый поиск — первое вхождение паттерна в строке.
+     * Look for percise fragment = "= <rhsCode>" in line
+     * Use startColumn/endColumn from graph,
+     * else do text search.
      */
     private String applyRedundantAssignment(String line, SimpleAssignmentNode assignment) {
         String rhs = assignment.getRhsCode().trim();

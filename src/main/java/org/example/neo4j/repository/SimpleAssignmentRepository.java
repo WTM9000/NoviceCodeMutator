@@ -28,7 +28,6 @@ public class SimpleAssignmentRepository extends NodeRepository implements AutoCl
      * Находит standalone-присваивания вида   y = x;
      * где оба операнда — простые идентификаторы (Reference),
      * lhs != rhs по имени, rhs не является вызовом или выражением с side effects.
-     *
      * Используется мутацией RedundantAssignment  (y = x  →  y = x = x)
      * и будет переиспользован мутацией SynchronizedVariables.
      */
