@@ -1,9 +1,7 @@
-package org.example.mutation;
+package org.example.mutator;
 
 import org.example.model.FileModel;
-import org.example.model.IfRootNode;
 import org.example.model.WhileLoopCandidate;
-import org.example.mutator.MutationOperator;
 import org.example.neo4j.repository.IfToWhileLoopRepository;
 import org.example.neo4j.repository.NodeRepository;
 
@@ -13,7 +11,7 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * Mutation 3.2b — Wrap If+Return in a pseudo-branch while loop.
+ * Mutation IfToWhileLoop — Wrap If+Return in a pseudo-branch while loop.
  *
  * Before:
  *   if (y1 && y2) <body>;
@@ -55,46 +53,50 @@ public class IfToWhileLoopMutation extends MutationOperator {
     protected FileModel mutate() {
         if (candidate == null) return null;
 
-        int ifStart  = candidate.getIfStatement().getStartLine();
-        int ifEnd    = candidate.getIfStatement().getEndLine();
-        int retEnd   = candidate.getReturnStatement().getEndLine();
+        int ifStart = candidate.getIfStatement().getStartLine();
+        int ifEnd   = candidate.getIfStatement().getEndLine();
+        int retEnd  = candidate.getReturnStatement().getEndLine();
 
-        List<String> lines    = new ArrayList<>(originalFile.getLines());
-        String ifLine         = lines.get(ifStart - 1);
-        String indent         = leadingWhitespace(ifLine);
-        String innerIndent    = indent + "    ";
+        List<String> lines = new ArrayList<>(originalFile.getLines());
 
-        // Build the new if-line with the narrowed inner condition.
-        String narrowedIf     = buildNarrowedIf(ifLine, candidate.getInnerIfCondition());
+        String ifLine      = lines.get(ifStart - 1);
+        String indent      = leadingWhitespace(ifLine);
+        String innerIndent = indent + "    ";
+        String bodyIndent  = innerIndent + "    ";
 
-        // Lines to insert in place of the original if+return block:
-        // while (y1) {
-        //     if (y2) <body>;
-        //     return <expr>;
-        // }
-        // return <expr>;
+        // Narrow the if condition: replace "y1 && y2" with just "y2".
+        String narrowedIfLine = buildNarrowedIf(ifLine, candidate.getInnerIfCondition());
+
         List<String> replacement = new ArrayList<>();
-        replacement.add(indent + "while (" + candidate.getWhileCondition() + ") {");
-        replacement.add(innerIndent + narrowedIf.stripLeading());
 
-        // Include any continuation lines of a multi-line if body (ifStart..ifEnd).
-        for (int i = ifStart; i < ifEnd; i++) {  // ifStart is 1-indexed; i=ifStart covers line ifStart+1
-            replacement.add(innerIndent + lines.get(i).stripLeading());
+        // while (y1) {
+        replacement.add(indent + "while (" + candidate.getWhileCondition() + ") {");
+
+        // Inner if-line with one extra level of indent.
+        replacement.add(innerIndent + narrowedIfLine.stripLeading());
+
+        // Continuation lines of a multi-line if body (lines ifStart+1 .. ifEnd).
+        // Each original line already carries indent+"    "; strip and re-add bodyIndent.
+        for (int i = ifStart; i < ifEnd; i++) {
+            replacement.add(bodyIndent + lines.get(i).stripLeading());
         }
 
-        // Move the return inside the while block.
+        // Return statement lines (ifEnd+1 .. retEnd), all at innerIndent level.
+        // FIX: iterate from ifEnd to retEnd (inclusive) in a single pass —
+        // no separate add() after the loop, which previously caused a duplicate.
         for (int i = ifEnd; i < retEnd; i++) {
             replacement.add(innerIndent + lines.get(i).stripLeading());
         }
-        replacement.add(innerIndent + lines.get(retEnd - 1).stripLeading());  // return line
+
+        // Closing brace of while.
         replacement.add(indent + "}");
 
-        // Duplicate return after the closing brace.
+        // Duplicate return after the closing brace (outside the while).
         replacement.add(indent + lines.get(retEnd - 1).stripLeading());
 
-        // Replace lines [ifStart-1 .. retEnd-1] with the replacement block.
+        // Replace original lines [ifStart-1 .. retEnd-1] with the replacement block.
         int deleteFrom = ifStart - 1;
-        int deleteTo   = retEnd;   // exclusive
+        int deleteTo   = retEnd;  // exclusive upper bound
         for (int i = deleteTo - 1; i >= deleteFrom; i--) {
             lines.remove(i);
         }
@@ -104,8 +106,6 @@ public class IfToWhileLoopMutation extends MutationOperator {
         Path newPath   = originalFile.getFilePath().getParent().resolve(newName);
         return new FileModel(newName, newPath, lines);
     }
-
-
 
     @Override
     public String getMutationName() {
