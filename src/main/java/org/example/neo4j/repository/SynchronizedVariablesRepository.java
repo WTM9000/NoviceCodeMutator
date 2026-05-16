@@ -72,7 +72,7 @@ public class SynchronizedVariablesRepository extends NodeRepository implements A
                 );
 
                 // Variant A: look for a BinaryOperator with two Identifier operands in the same block.
-                String scopeExpr = findSimpleBinaryExprInBlock(session, blockId);
+                String scopeExpr = findSimpleBinaryExprInBlock(session, blockId, stmt.getStartLine());
 
                 if (scopeExpr != null) {
                     candidates.add(new SynchronizedVariablesCandidate(blockId, stmt, scopeExpr, true));
@@ -93,18 +93,25 @@ public class SynchronizedVariablesRepository extends NodeRepository implements A
      * Returns the code of the simplest BinaryOperator (+, -, *, /) inside the given block
      * whose both operands are plain Identifiers. Returns null if nothing qualifies.
      */
-    private String findSimpleBinaryExprInBlock(Session session, int blockId) {
+    private String findSimpleBinaryExprInBlock(Session session, int blockId, int stmtStartLine) {
         String cypher = """
                 MATCH (block)-[:AST*1..]->(expr:BinaryOperator)
                 WHERE id(block) = $blockId
                   AND expr.name IN ['+', '-', '*', '/']
-                MATCH (expr)-[:OPERATOR_BASE]->(left:Identifier)
-                MATCH (expr)-[:OPERATOR_ARGUMENTS]->(right:Identifier)
+                  AND expr.endLine < $stmtStartLine
+                MATCH (expr)-[:OPERATOR_BASE]->(left)
+                WHERE left:Reference OR left:Literal
+                MATCH (expr)-[:OPERATOR_ARGUMENTS]->(right)
+                WHERE right:Reference OR right:Literal
                 RETURN expr.code AS exprCode
                 LIMIT 1
                 """;
 
-        Result result = session.run(cypher, Map.of("blockId", blockId));
+        Result result = session.run(cypher, Map.of(
+                "blockId", blockId,
+                "stmtStartLine", stmtStartLine
+                ));
+
         if (result.hasNext()) {
             Value v = result.next().get("exprCode");
             return (v == null || v.isNull()) ? null : v.asString();
