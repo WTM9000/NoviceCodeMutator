@@ -34,6 +34,7 @@ public class MutationOperatorFactory {
             case EMPTY_EXPRESSION -> createEmptyExpression(fileModel, config);
             case EMPTY_LOOP -> createEmptyLoop(fileModel, config);
             case CONTINUE_UNREACHABLE -> createContinueUnreachable(fileModel, config);
+            case RETURN_UNREACHABLE -> createReturnUnreachable(fileModel, config);
             case VARIABLE_NAME_REPLACE -> createVariableNameReplace(fileModel, config, parameters);
             case VARIABLE_ALGEBRAIC_WRAP -> createVariableAlgebraicWrap(fileModel, config, parameters);
             case BINARY_OPERATOR_COMMUTE -> createBinaryOperatorCommute(fileModel, config);
@@ -201,5 +202,10 @@ public class MutationOperatorFactory {
     private MutationOperator createContinueUnreachable(FileModel fileModel, Neo4jConfig config) {
         ContinueUnreachableRepository repository = new ContinueUnreachableRepository(config);
         return new ContinueUnreachableMutation(fileModel, repository);
+    }
+
+    private MutationOperator createReturnUnreachable(FileModel fileModel, Neo4jConfig config) {
+        ReturnUnreachableRepository repository = new ReturnUnreachableRepository(config);
+        return new ReturnUnreachableMutation(fileModel, repository);
     }
 }
