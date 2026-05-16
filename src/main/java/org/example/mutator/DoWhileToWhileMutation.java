@@ -7,14 +7,14 @@ import org.example.model.ForElementNode;
 import org.example.neo4j.repository.DoWhileLoopRepository;
 
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public class DoWhileToWhileMutation extends MutationOperator {
 
-    private static final int INDENT_STEP = 4;
-
     private DoWhileLoopParts loopParts;
-    private final Random     random = new Random();
+    private final Random random = new Random();
 
     public DoWhileToWhileMutation(FileModel originalFile, DoWhileLoopRepository repo) {
         super(originalFile, repo);
@@ -69,62 +69,83 @@ public class DoWhileToWhileMutation extends MutationOperator {
 
         List<String> newLines = new ArrayList<>(originalFile.getLines());
 
-        // ── step 1: collect body lines (inside the braces, dedented by one level) ──
+        // ── indentation of the do-while keyword itself (0-based column count) ──
+        // loop.getStartColumn() is 1-based, so subtract 1.
+        int loopIndentCount = Math.max(0, loop.getStartColumn() - 1);
+        String loopIndent   = " ".repeat(loopIndentCount);
 
-        // Body Block spans startLine..endLine (1-based).
-        // We copy lines startLine+1 .. endLine-1 (the content between the braces).
-        int bodyContentStart = body.getStartLine();     // first line of block "{" line
-        int bodyContentEnd   = body.getEndLine();       // last  line of block "}" line
+        // ── collect body lines (between the braces, exclusive) ────────────────
+        // body.getStartLine() is the "{" line, body.getEndLine() is the "}" line.
+        // Content lines are startLine+1 .. endLine-1 (1-based).
+        int bodyStart = body.getStartLine();
+        int bodyEnd   = body.getEndLine();
 
-        // Lines between the braces (exclusive of the brace lines themselves):
-        List<String> bodyContent = new ArrayList<>();
-        for (int lineNum = bodyContentStart + 1; lineNum < bodyContentEnd; lineNum++) {
-            String raw = originalFile.getLines().get(lineNum - 1);
-            bodyContent.add(dedentOnce(raw));
+        // Determine how many leading spaces the FIRST content line has so we
+        // can strip exactly that many spaces (= loop indent + one level added
+        // by the block).  This is robust regardless of tab-size conventions.
+        int innerIndentCount = 0;
+        if (bodyStart + 1 <= bodyEnd - 1) {
+            String firstBodyLine = newLines.get(bodyStart);   // 0-based: bodyStart+1-1
+            while (innerIndentCount < firstBodyLine.length()
+                    && firstBodyLine.charAt(innerIndentCount) == ' ') {
+                innerIndentCount++;
+            }
+        }
+        // How many spaces to strip = inner indent - loop indent.
+        // This equals exactly one indent level added by the block.
+        int stripCount = Math.max(0, innerIndentCount - loopIndentCount);
+
+        List<String> bodyContentLines = new ArrayList<>();
+        for (int lineNum = bodyStart + 1; lineNum <= bodyEnd - 1; lineNum++) {
+            String raw = newLines.get(lineNum - 1);   // list is 0-based
+            bodyContentLines.add(stripLeadingSpaces(raw, stripCount));
         }
 
-        // ── step 2: build the replacement while-loop text ──────────────────────────
-
-        String condCode = (condition != null && condition.getCode() != null
+        // ── condition string ──────────────────────────────────────────────────
+        String condCode = (condition != null
+                && condition.getCode() != null
                 && !condition.getCode().isBlank())
-                ? condition.getCode()
+                ? condition.getCode().strip()
                 : "true";
 
-        String loopIndent = " ".repeat(Math.max(0, loop.getStartColumn() - 1));
-
-        StringBuilder whileLoop = new StringBuilder();
-        whileLoop.append("while (").append(condCode).append(") {");
-
-        for (String bodyLine : bodyContent) {
-            whileLoop.append("\n").append(loopIndent).append(bodyLine);
+        // ── build replacement lines for the while-loop ────────────────────────
+        // Each line becomes a separate String element in the list — no embedded \n.
+        List<String> whileLines = new ArrayList<>();
+        whileLines.add(loopIndent + "while (" + condCode + ") {");
+        for (String bodyLine : bodyContentLines) {
+            // Body lines keep their original indent relative to the loop,
+            // which is already correct since we only stripped the extra level.
+            whileLines.add(loopIndent + bodyLine);
         }
-        whileLoop.append("\n").append(loopIndent).append("}");
+        whileLines.add(loopIndent + "}");
 
-        // ── step 3: replace the entire do-while range with the while-loop ─────────
+        // ── step 1: replace the do-while range with the while-loop lines ──────
+        // Remove old lines (endLine down to startLine, inclusive) and insert new ones.
+        // Working bottom-up so indices don't shift during removal.
+        int replaceStartIdx = loop.getStartLine() - 1;   // 0-based
+        int replaceEndIdx   = loop.getEndLine()   - 1;   // 0-based
 
-        // The do-while node's own code spans loop.startLine .. loop.endLine.
-        // We replace that whole range in newLines.
-        replaceLineRange(newLines,
-                loop.getStartLine(),
-                loop.getEndLine(),
-                whileLoop.toString());
+        for (int i = replaceEndIdx; i >= replaceStartIdx; i--) {
+            newLines.remove(i);
+        }
+        // Insert while-loop lines at the same position, preserving order.
+        newLines.addAll(replaceStartIdx, whileLines);
 
-        // ── step 4: insert the first-iteration copy before the loop ───────────────
-
-        // After step 3 the while-loop starts at loop.getStartLine() (0-based: index startLine-1).
-        // We insert the body lines BEFORE that position.
+        // ── step 2: insert first-iteration copy BEFORE the while-loop ─────────
+        // After step 1 the while-loop now starts at replaceStartIdx.
+        // First-iteration lines get the same indent as the loop itself.
         List<String> firstIterLines = new ArrayList<>();
-        for (String bodyLine : bodyContent) {
+        for (String bodyLine : bodyContentLines) {
             firstIterLines.add(loopIndent + bodyLine);
         }
 
-        int insertAt = loop.getStartLine() - 1;   // 0-based index
-        newLines.addAll(insertAt, firstIterLines);
+        // Insert before replaceStartIdx — indices are still valid because
+        // we did the replacement first and are now inserting before it.
+        newLines.addAll(replaceStartIdx, firstIterLines);
 
-        // ── step 5: assemble result ────────────────────────────────────────────────
-
-        String   newName = buildNewName(originalFile.getFileName(), "_do_while_to_while");
-        Path     newPath = originalFile.getFilePath().getParent().resolve(newName);
+        // ── assemble result ────────────────────────────────────────────────────
+        String newName = buildNewName(originalFile.getFileName(), "_do_while_to_while");
+        Path   newPath = originalFile.getFilePath().getParent().resolve(newName);
 
         return new FileModel(newName, newPath, newLines);
     }
@@ -137,52 +158,15 @@ public class DoWhileToWhileMutation extends MutationOperator {
     // ── private helpers ───────────────────────────────────────────────────────
 
     /**
-     * Replaces lines [startLine..endLine] (1-based, inclusive) in the list
-     * with the lines produced by splitting replacementText on '\n'.
+     * Removes at most {@code count} leading space characters from {@code line}.
+     * Never removes more than the actual number of leading spaces present.
      */
-    private void replaceLineRange(List<String> lines,
-                                  int startLine, int endLine,
-                                  String replacementText) {
-        int startIdx = startLine - 1;
-        int endIdx   = endLine   - 1;
-
-        for (int i = endIdx; i >= startIdx; i--) {
-            lines.remove(i);
+    private String stripLeadingSpaces(String line, int count) {
+        if (line == null) return "";
+        int remove = 0;
+        while (remove < count && remove < line.length() && line.charAt(remove) == ' ') {
+            remove++;
         }
-
-        List<String> parts = splitByNewline(replacementText);
-        for (int i = parts.size() - 1; i >= 0; i--) {
-            lines.add(startIdx, parts.get(i));
-        }
-    }
-
-    /**
-     * Removes exactly one indent level (INDENT_STEP spaces) from the
-     * beginning of the line, if present.
-     */
-    private String dedentOnce(String line) {
-        if (line == null) {
-            return "";
-        }
-        int spaces = 0;
-        while (spaces < line.length() && line.charAt(spaces) == ' ') {
-            spaces++;
-        }
-        int remove = Math.min(spaces, INDENT_STEP);
         return line.substring(remove);
-    }
-
-    /** Splits on '\n' without losing trailing empty strings. */
-    private List<String> splitByNewline(String text) {
-        List<String> result = new ArrayList<>();
-        int start = 0;
-        for (int i = 0; i < text.length(); i++) {
-            if (text.charAt(i) == '\n') {
-                result.add(text.substring(start, i));
-                start = i + 1;
-            }
-        }
-        result.add(text.substring(start));
-        return result;
     }
 }
