@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Objects;
 
 public enum MutationType {
+
+    REDUNDANT_ASSIGNMENT("RedundantAssignment"),
     VARIABLE_NAME_REPLACE("ReplaceNameVariables"),
     VARIABLE_ALGEBRAIC_WRAP("VariableAlgebraicWrap"),
     BINARY_OPERATOR_COMMUTE("BinaryOperatorCommute"),

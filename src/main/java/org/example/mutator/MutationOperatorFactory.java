@@ -29,6 +29,7 @@ public class MutationOperatorFactory {
         }
 
         return switch (mutationType) {
+            case REDUNDANT_ASSIGNMENT -> createRedundantAssignment(fileModel, config);
             case VARIABLE_NAME_REPLACE -> createVariableNameReplace(fileModel, config, parameters);
             case VARIABLE_ALGEBRAIC_WRAP -> createVariableAlgebraicWrap(fileModel, config, parameters);
             case BINARY_OPERATOR_COMMUTE -> createBinaryOperatorCommute(fileModel, config);
@@ -154,5 +155,12 @@ public class MutationOperatorFactory {
         CompoundConditionExpandRepository repository =
                 new CompoundConditionExpandRepository(config);
         return new CompoundConditionExpandMutation(fileModel, repository);
+    }
+
+    private MutationOperator createRedundantAssignment(FileModel fileModel,
+                                                       Neo4jConfig config) {
+        SimpleAssignmentRepository repository =
+                new SimpleAssignmentRepository(config);
+        return new RedundantAssignmentMutation(fileModel, repository);
     }
 }
