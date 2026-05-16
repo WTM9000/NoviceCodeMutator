@@ -7,6 +7,7 @@ public enum MutationType {
 
     REDUNDANT_ASSIGNMENT("RedundantAssignment"),
     SYNCHRONIZED_VARIABLES("SynchronizedVariables"),
+    EMPTY_EXPRESSION("EmptyExpression"),
     VARIABLE_NAME_REPLACE("ReplaceNameVariables"),
     VARIABLE_ALGEBRAIC_WRAP("VariableAlgebraicWrap"),
     BINARY_OPERATOR_COMMUTE("BinaryOperatorCommute"),

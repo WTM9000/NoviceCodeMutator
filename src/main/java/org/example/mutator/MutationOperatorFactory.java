@@ -31,6 +31,7 @@ public class MutationOperatorFactory {
         return switch (mutationType) {
             case REDUNDANT_ASSIGNMENT -> createRedundantAssignment(fileModel, config);
             case SYNCHRONIZED_VARIABLES -> createSynchronizedVariables(fileModel, config, parameters);
+            case EMPTY_EXPRESSION -> createEmptyExpression(fileModel, config);
             case VARIABLE_NAME_REPLACE -> createVariableNameReplace(fileModel, config, parameters);
             case VARIABLE_ALGEBRAIC_WRAP -> createVariableAlgebraicWrap(fileModel, config, parameters);
             case BINARY_OPERATOR_COMMUTE -> createBinaryOperatorCommute(fileModel, config);
@@ -183,5 +184,10 @@ public class MutationOperatorFactory {
 
         SynchronizedVariablesRepository repository = new SynchronizedVariablesRepository(config);
         return new SynchronizedVariablesMutation(fileModel, repository, syncVarX, syncVarY);
+    }
+
+    private MutationOperator createEmptyExpression(FileModel fileModel, Neo4jConfig config) {
+        EmptyExpressionRepository repository = new EmptyExpressionRepository(config);
+        return new EmptyExpressionMutation(fileModel, repository);
     }
 }
