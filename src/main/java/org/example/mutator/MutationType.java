@@ -25,7 +25,8 @@ public enum MutationType {
     VARIABLE_DECLARATION_HOIST("VariableDeclarationHoist"),
     CONTINUE_ANTI_IDIOM("ContinueAntiIdiom"),
     ELSE_IF_FLATTEN("ElseIfFlatten"),
-    COMPOUND_CONDITION_EXPAND("CompoundConditionExpand"),;
+    COMPOUND_CONDITION_EXPAND("CompoundConditionExpand"),
+    IF_TO_WHILE_CONVERT("IfToWhileConvert");
 
     private final String text;
 

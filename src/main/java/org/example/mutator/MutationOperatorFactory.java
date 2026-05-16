@@ -1,6 +1,7 @@
 package org.example.mutator;
 
 import org.example.model.FileModel;
+import org.example.mutation.IfToWhileLoopMutation;
 import org.example.neo4j.*;
 import org.example.neo4j.repository.*;
 
@@ -50,6 +51,7 @@ public class MutationOperatorFactory {
             case CONTINUE_ANTI_IDIOM -> createContinueAntiIdiom(fileModel, config);
             case ELSE_IF_FLATTEN -> createElseIfFlatten(fileModel, config);
             case COMPOUND_CONDITION_EXPAND -> createCompoundConditionExpand(fileModel, config);
+            case IF_TO_WHILE_CONVERT -> createIfToWhile(fileModel, config);
         };
     }
 
@@ -207,5 +209,10 @@ public class MutationOperatorFactory {
     private MutationOperator createReturnUnreachable(FileModel fileModel, Neo4jConfig config) {
         ReturnUnreachableRepository repository = new ReturnUnreachableRepository(config);
         return new ReturnUnreachableMutation(fileModel, repository);
+    }
+
+    private MutationOperator createIfToWhile(FileModel fileModel, Neo4jConfig config) {
+        IfToWhileLoopRepository repository = new IfToWhileLoopRepository(config);
+        return new IfToWhileLoopMutation(fileModel, repository);
     }
 }
