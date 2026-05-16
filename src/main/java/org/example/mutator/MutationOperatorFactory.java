@@ -30,6 +30,7 @@ public class MutationOperatorFactory {
 
         return switch (mutationType) {
             case REDUNDANT_ASSIGNMENT -> createRedundantAssignment(fileModel, config);
+            case SYNCHRONIZED_VARIABLES -> createSynchronizedVariables(fileModel, config, parameters);
             case VARIABLE_NAME_REPLACE -> createVariableNameReplace(fileModel, config, parameters);
             case VARIABLE_ALGEBRAIC_WRAP -> createVariableAlgebraicWrap(fileModel, config, parameters);
             case BINARY_OPERATOR_COMMUTE -> createBinaryOperatorCommute(fileModel, config);
@@ -162,5 +163,25 @@ public class MutationOperatorFactory {
         SimpleAssignmentRepository repository =
                 new SimpleAssignmentRepository(config);
         return new RedundantAssignmentMutation(fileModel, repository);
+    }
+
+    private MutationOperator createSynchronizedVariables(FileModel fileModel,
+                                                         Neo4jConfig config,
+                                                         Map<String, String> parameters) {
+        String syncVarX = parameters.get("syncVarX");
+        String syncVarY = parameters.get("syncVarY");
+
+        if (syncVarX == null || syncVarX.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Parameter 'syncVarX' must not be blank for SYNCHRONIZED_VARIABLES");
+        }
+
+        if (syncVarY == null || syncVarY.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Parameter 'syncVarY' must not be blank for SYNCHRONIZED_VARIABLES");
+        }
+
+        SynchronizedVariablesRepository repository = new SynchronizedVariablesRepository(config);
+        return new SynchronizedVariablesMutation(fileModel, repository, syncVarX, syncVarY);
     }
 }

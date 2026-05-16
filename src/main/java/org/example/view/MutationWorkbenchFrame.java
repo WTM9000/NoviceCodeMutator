@@ -214,6 +214,22 @@ public class MutationWorkbenchFrame extends JFrame {
 
     private List<MutationParameterDefinition> getParameterDefinitions(MutationType mutationType) {
         return switch (mutationType) {
+            case SYNCHRONIZED_VARIABLES -> List.of(
+                    new MutationParameterDefinition(
+                            "syncVarX",
+                            "First new variable name:",
+                            MutationParameterControlType.TEXT,
+                            "mutated_x",
+                            List.of()
+                    ),new MutationParameterDefinition(
+                            "syncVarY",
+                            "Second new variable name:",
+                            MutationParameterControlType.TEXT,
+                            "mutated_y",
+                            List.of()
+                    )
+
+            );
             case VARIABLE_NAME_REPLACE -> List.of(
                     new MutationParameterDefinition(
                             "newVariableName",
