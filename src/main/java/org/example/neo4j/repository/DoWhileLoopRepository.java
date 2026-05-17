@@ -29,6 +29,12 @@ public class DoWhileLoopRepository extends NodeRepository implements AutoCloseab
     public List<DoWhileLoopNode> findAllDoWhileLoops() {
         String cypher = """
                 MATCH (n:DoStatement)
+                WHERE NOT EXISTS {
+                MATCH (stmt)
+                WHERE (stmt:ContinueStatement OR stmt:BreakStatement)
+                AND stmt.startLine > n.startLine
+                AND stmt.endLine < n.endLine
+                }
                 RETURN id(n)          AS id,
                        n.code         AS code,
                        n.startLine    AS startLine,
