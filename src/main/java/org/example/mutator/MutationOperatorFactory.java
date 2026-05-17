@@ -33,6 +33,7 @@ public class MutationOperatorFactory {
             case SYNCHRONIZED_VARIABLES -> createSynchronizedVariables(fileModel, config, parameters);
             case EMPTY_EXPRESSION -> createEmptyExpression(fileModel, config);
             case EMPTY_LOOP -> createEmptyLoop(fileModel, config);
+            case EMPTY_INITIALIZATION -> createEmptyInitialization(fileModel, config);
             case CONTINUE_UNREACHABLE -> createContinueUnreachable(fileModel, config);
             case RETURN_UNREACHABLE -> createReturnUnreachable(fileModel, config);
             case VARIABLE_NAME_REPLACE -> createVariableNameReplace(fileModel, config, parameters);
@@ -223,5 +224,10 @@ public class MutationOperatorFactory {
     private MutationOperator createDoWhileToWhile(FileModel fileModel, Neo4jConfig config) {
         DoWhileLoopRepository repository = new DoWhileLoopRepository(config);
         return new DoWhileToWhileMutation(fileModel, repository);
+    }
+
+    private MutationOperator createEmptyInitialization(FileModel fileModel, Neo4jConfig config) {
+        EmptyInitializationRepository repository = new EmptyInitializationRepository(config);
+        return new EmptyInitializationMutation(fileModel, repository);
     }
 }

@@ -9,6 +9,7 @@ public enum MutationType {
     SYNCHRONIZED_VARIABLES("SynchronizedVariables"),
     EMPTY_EXPRESSION("EmptyExpression"),
     EMPTY_LOOP("EmptyLoop"),
+    EMPTY_INITIALIZATION("EmptyInitialization"),
     CONTINUE_UNREACHABLE("ContinueUnreachable"),
     RETURN_UNREACHABLE("ReturnUnreachable"),
     VARIABLE_NAME_REPLACE("ReplaceNameVariables"),
