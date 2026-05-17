@@ -47,7 +47,7 @@ public class MutationOperatorFactory {
             case IF_ELSE_TO_SEQUENTIAL_IF -> createIfElseToSequentialIf(fileModel, config);
             case BOOLEAN_ASSIGNMENT_TO_IF -> createBooleanAssignmentToIf(fileModel, config);
             case VARIABLE_DECLARATION_HOIST -> createVariableDeclarationHoist(fileModel, config);
-            case CONTINUE_ANTI_IDIOM -> createContinueAntiIdiom(fileModel, config);
+            case CONTINUE_ANTI_IDIOM -> createContinueAntiIdiom(fileModel, config, parameters);
             case ELSE_IF_FLATTEN -> createElseIfFlatten(fileModel, config);
             case COMPOUND_CONDITION_EXPAND -> createCompoundConditionExpand(fileModel, config);
             case IF_TO_WHILE_CONVERT -> createIfToWhile(fileModel, config);
@@ -147,9 +147,13 @@ public class MutationOperatorFactory {
     }
 
     private MutationOperator createContinueAntiIdiom(FileModel fileModel,
-                                                     Neo4jConfig config) {
+                                                     Neo4jConfig config,
+                                                     Map<String, String> parameters) {
+        boolean addDeadCode = Boolean.parseBoolean(
+                parameters.getOrDefault("addDeadCode", "false")
+        );
         ContinueAntiIdiomRepository repository = new ContinueAntiIdiomRepository(config);
-        return new ContinueAntiIdiomMutation(fileModel, repository);
+        return new ContinueAntiIdiomMutation(fileModel, repository, addDeadCode);
     }
 
     private MutationOperator createElseIfFlatten(FileModel fileModel, Neo4jConfig config) {

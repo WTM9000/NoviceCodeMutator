@@ -26,6 +26,8 @@ public class ContinueAntiIdiomRepository extends NodeRepository implements AutoC
     }
 
     public List<ContinueAntiIdiomCandidate> findCandidates() {
+        // Finds top-level if-statements that are the last AST child of a loop body.
+        // Includes cases where elseNode is a plain else OR the start of an else-if chain.
         String cypher = """
                 MATCH (loop)
                 WHERE loop:LoopStatement
@@ -51,36 +53,50 @@ public class ContinueAntiIdiomRepository extends NodeRepository implements AutoC
             while (queryResult.hasNext()) {
                 Record record = queryResult.next();
 
-                Value loopValue = record.get("loop");
-                Value bodyValue = record.get("body");
-                Value ifValue = record.get("ifNode");
-                Value condValue = record.get("cond");
-                Value thenValue = record.get("thenNode");
-                Value elseValue = record.get("elseNode");
+                Value loopValue  = record.get("loop");
+                Value bodyValue  = record.get("body");
+                Value ifValue    = record.get("ifNode");
+                Value condValue  = record.get("cond");
+                Value thenValue  = record.get("thenNode");
+                Value elseValue  = record.get("elseNode");
 
                 if (isAnyNull(loopValue, bodyValue, ifValue, condValue, thenValue)) {
                     continue;
                 }
-
-                StatementNode loopNode = mapStatementNode(loopValue);
-                StatementNode bodyNode = mapStatementNode(bodyValue);
-                StatementNode ifNode = mapStatementNode(ifValue);
-                StatementNode thenNode = mapStatementNode(thenValue);
-                StatementNode elseNode = elseValue == null || elseValue.isNull()
-                        ? null
-                        : mapStatementNode(elseValue);
 
                 String guardCode = asNullableString(condValue.get("code"));
                 if (!isSafeGuard(guardCode)) {
                     continue;
                 }
 
-                if (isElseIf(elseNode)) {
-                    continue;
-                }
+                StatementNode loopNode = mapStatementNode(loopValue);
+                StatementNode bodyNode = mapStatementNode(bodyValue);
+                StatementNode ifNode   = mapStatementNode(ifValue);
+                StatementNode thenNode = mapStatementNode(thenValue);
 
-                boolean hasElse = elseNode != null;
-                boolean trivialElse = !hasElse || isTrivialElse(elseNode.getCode());
+                boolean elseIsNull = elseValue == null || elseValue.isNull();
+
+                // Check if the else branch is a nested IfStatement (else-if chain)
+                boolean elseIsIfStatement = !elseIsNull
+                        && elseValue.get("labels") != null
+                        && isIfStatementNode(elseValue);
+
+                ContinueAntiIdiomCandidate elseIfBranch = null;
+                StatementNode elseNode = null;
+                boolean hasElse = false;
+                boolean trivialElse = true;
+
+                if (!elseIsNull) {
+                    if (elseIsIfStatement) {
+                        // else-if chain: recurse into nested IfStatement nodes
+                        elseIfBranch = buildElseIfBranch(session, elseValue, loopNode, bodyNode);
+                        // elseNode stays null — the else branch is represented by elseIfBranch
+                    } else {
+                        elseNode = mapStatementNode(elseValue);
+                        hasElse = true;
+                        trivialElse = isTrivialElse(elseNode.getCode());
+                    }
+                }
 
                 result.add(new ContinueAntiIdiomCandidate(
                         loopNode,
@@ -90,12 +106,107 @@ public class ContinueAntiIdiomRepository extends NodeRepository implements AutoC
                         elseNode,
                         guardCode,
                         hasElse,
-                        trivialElse
+                        trivialElse,
+                        elseIfBranch
                 ));
             }
         }
 
         return result;
+    }
+
+    /**
+     * Recursively builds a ContinueAntiIdiomCandidate chain for an else-if node.
+     * The CPG structure:
+     *   (ifElse:IfStatement)-[:CONDITION]->(cond)
+     *                       -[:THEN_STATEMENT]->(stmt)
+     *                       -[:ELSE_STATEMENT]->(next)   // next may be IfStatement or plain Statement
+     */
+    private ContinueAntiIdiomCandidate buildElseIfBranch(Session session,
+                                                         Value ifElseValue,
+                                                         StatementNode loopNode,
+                                                         StatementNode bodyNode) {
+        long nodeId = ifElseValue.asNode().id();
+
+        String cypher = """
+                MATCH (ifNode) WHERE id(ifNode) = $nodeId
+                MATCH (ifNode)-[:CONDITION]->(cond)
+                MATCH (ifNode)-[:THEN_STATEMENT]->(thenNode)
+                OPTIONAL MATCH (ifNode)-[:ELSE_STATEMENT]->(elseNode)
+                RETURN ifNode, cond, thenNode, elseNode
+                """;
+
+        Result result = session.run(cypher, org.neo4j.driver.Values.parameters("nodeId", nodeId));
+        if (!result.hasNext()) {
+            return null;
+        }
+
+        Record record = result.next();
+
+        Value ifValue   = record.get("ifNode");
+        Value condValue = record.get("cond");
+        Value thenValue = record.get("thenNode");
+        Value elseValue = record.get("elseNode");
+
+        if (isAnyNull(ifValue, condValue, thenValue)) {
+            return null;
+        }
+
+        String guardCode = asNullableString(condValue.get("code"));
+        if (!isSafeGuard(guardCode)) {
+            return null;
+        }
+
+        StatementNode ifNode   = mapStatementNode(ifValue);
+        StatementNode thenNode = mapStatementNode(thenValue);
+
+        boolean elseIsNull = elseValue == null || elseValue.isNull();
+
+        ContinueAntiIdiomCandidate nestedElseIfBranch = null;
+        StatementNode elseNode = null;
+        boolean hasElse = false;
+        boolean trivialElse = true;
+
+        if (!elseIsNull) {
+            if (isIfStatementNode(elseValue)) {
+                nestedElseIfBranch = buildElseIfBranch(session, elseValue, loopNode, bodyNode);
+            } else {
+                elseNode = mapStatementNode(elseValue);
+                hasElse = true;
+                trivialElse = isTrivialElse(elseNode.getCode());
+            }
+        }
+
+        return new ContinueAntiIdiomCandidate(
+                loopNode,
+                bodyNode,
+                ifNode,
+                thenNode,
+                elseNode,
+                guardCode,
+                hasElse,
+                trivialElse,
+                nestedElseIfBranch
+        );
+    }
+
+    /**
+     * Checks if a CPG node Value represents an IfStatement.
+     * Uses presence of CONDITION/THEN_STATEMENT relationships as a heuristic,
+     * since the Java driver exposes labels via asNode().labels().
+     */
+    private boolean isIfStatementNode(Value value) {
+        try {
+            Iterable<String> labels = value.asNode().labels();
+            for (String label : labels) {
+                if ("IfStatement".equals(label)) {
+                    return true;
+                }
+            }
+        } catch (Exception ignored) {
+            // Not a node value
+        }
+        return false;
     }
 
     private boolean isSafeGuard(String guardCode) {
@@ -116,14 +227,6 @@ public class ContinueAntiIdiomRepository extends NodeRepository implements AutoC
         }
 
         return true;
-    }
-
-    private boolean isElseIf(StatementNode elseNode) {
-        if (elseNode == null || elseNode.getCode() == null) {
-            return false;
-        }
-        String code = elseNode.getCode().trim();
-        return code.startsWith("if") || code.startsWith("else if");
     }
 
     private boolean isTrivialElse(String elseCode) {

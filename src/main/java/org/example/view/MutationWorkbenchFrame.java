@@ -257,6 +257,15 @@ public class MutationWorkbenchFrame extends JFrame {
                             List.of()
                     )
             );
+            case CONTINUE_ANTI_IDIOM -> List.of(
+                    new MutationParameterDefinition(
+                            "addDeadCode",
+                            "Add dead code:",
+                            MutationParameterControlType.CHECKBOX,
+                            "false",
+                            List.of()
+                    )
+            );
             default -> List.of();
         };
     }
