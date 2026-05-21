@@ -37,20 +37,11 @@ public class MutationOperatorFactory {
             case CONTINUE_UNREACHABLE -> createContinueUnreachable(fileModel, config);
             case RETURN_UNREACHABLE -> createReturnUnreachable(fileModel, config);
             case VARIABLE_NAME_REPLACE -> createVariableNameReplace(fileModel, config, parameters);
-            case VARIABLE_ALGEBRAIC_WRAP -> createVariableAlgebraicWrap(fileModel, config, parameters);
-            case BINARY_OPERATOR_COMMUTE -> createBinaryOperatorCommute(fileModel, config);
-            case WHILE_TO_FOR -> createWhileToFor(fileModel, config);
             case FOR_TO_WHILE -> createForToWhile(fileModel, config);
-            case DE_MORGAN -> createDeMorgan(fileModel, config);
-            case NEGATED_COMPARISON -> createNegatedComparison(fileModel, config);
-            case TERNARY_TO_IF_ELSE -> createTernaryToIfElse(fileModel, config);
-            case EXPRESSION_SPLIT -> createExpressionSplit(fileModel, config, parameters);
-            case IF_ELSE_TO_SEQUENTIAL_IF -> createIfElseToSequentialIf(fileModel, config);
             case BOOLEAN_ASSIGNMENT_TO_IF -> createBooleanAssignmentToIf(fileModel, config);
             case VARIABLE_DECLARATION_HOIST -> createVariableDeclarationHoist(fileModel, config);
             case CONTINUE_ANTI_IDIOM -> createContinueAntiIdiom(fileModel, config, parameters);
             case ELSE_IF_FLATTEN -> createElseIfFlatten(fileModel, config);
-            case COMPOUND_CONDITION_EXPAND -> createCompoundConditionExpand(fileModel, config);
             case IF_TO_WHILE_CONVERT -> createIfToWhile(fileModel, config);
             case DO_WHILE_TO_WHILE -> createDoWhileToWhile(fileModel, config);
         };
@@ -73,65 +64,6 @@ public class MutationOperatorFactory {
                                               Neo4jConfig config) {
         ForLoopRepository repository = new ForLoopRepository(config);
         return new ForToWhileMutation(fileModel, repository);
-    }
-
-    private MutationOperator createVariableAlgebraicWrap(FileModel fileModel,
-                                                         Neo4jConfig config,
-                                                         Map<String, String> parameters) {
-        String operator = parameters.get("operator");
-
-        if (operator == null || operator.isBlank()) {
-            throw new IllegalArgumentException("Parameter 'operator' must not be blank for VARIABLE_ALGEBRAIC_WRAP");
-        }
-
-        VariableRepository repository = new VariableRepository(config);
-        return new VariableAlgebraicWrapMutation(fileModel, repository, operator);
-    }
-
-    private MutationOperator createBinaryOperatorCommute(FileModel fileModel,
-                                                         Neo4jConfig config) {
-        BinaryOperatorRepository repository = new BinaryOperatorRepository(config);
-        return new BinaryOperatorCommuteMutation(fileModel, repository);
-    }
-
-    private MutationOperator createWhileToFor(FileModel fileModel, Neo4jConfig config) {
-        WhileLoopRepository repository = new WhileLoopRepository(config);
-        return new WhileToForMutation(fileModel, repository);
-    }
-
-    private MutationOperator createDeMorgan(FileModel fileModel, Neo4jConfig config) {
-        DeMorganRepository repository = new DeMorganRepository(config);
-        return new DeMorganMutation(fileModel, repository);
-    }
-
-    private MutationOperator createNegatedComparison(FileModel fileModel, Neo4jConfig config) {
-        NegatedComparisonRepository repository = new NegatedComparisonRepository(config);
-        return new NegatedComparisonMutation(fileModel, repository);
-    }
-
-    private MutationOperator createTernaryToIfElse(FileModel fileModel, Neo4jConfig config) {
-        TernaryRepository repository = new TernaryRepository(config);
-        return new TernaryToIfElseMutation(fileModel, repository);
-    }
-
-    private MutationOperator createExpressionSplit(FileModel fileModel,
-                                                   Neo4jConfig config,
-                                                   Map<String, String> parameters) {
-        String newVariableName = parameters.get("newVariableName");
-
-        if (newVariableName == null || newVariableName.isBlank()) {
-            throw new IllegalArgumentException(
-                    "Parameter 'newVariableName' must not be blank for EXPRESSION_SPLIT"
-            );
-        }
-
-        ExpressionSplitRepository repository = new ExpressionSplitRepository(config);
-        return new ExpressionSplitMutation(fileModel, repository, newVariableName);
-    }
-
-    private MutationOperator createIfElseToSequentialIf(FileModel fileModel, Neo4jConfig config) {
-        IfElseChainRepository repository = new IfElseChainRepository(config);
-        return new IfElseToSequentialIfMutation(fileModel, repository);
     }
 
     private MutationOperator createBooleanAssignmentToIf(FileModel fileModel,
@@ -160,13 +92,6 @@ public class MutationOperatorFactory {
     private MutationOperator createElseIfFlatten(FileModel fileModel, Neo4jConfig config) {
         ElseIfFlattenRepository repository = new ElseIfFlattenRepository(config);
         return new ElseIfFlattenMutation(fileModel, repository);
-    }
-
-    private MutationOperator createCompoundConditionExpand(FileModel fileModel,
-                                                           Neo4jConfig config) {
-        CompoundConditionExpandRepository repository =
-                new CompoundConditionExpandRepository(config);
-        return new CompoundConditionExpandMutation(fileModel, repository);
     }
 
     private MutationOperator createRedundantAssignment(FileModel fileModel,

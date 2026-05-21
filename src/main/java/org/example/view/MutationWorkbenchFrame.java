@@ -239,24 +239,6 @@ public class MutationWorkbenchFrame extends JFrame {
                             List.of()
                     )
             );
-            case VARIABLE_ALGEBRAIC_WRAP -> List.of(
-                    new MutationParameterDefinition(
-                            "operator",
-                            "Operator:",
-                            MutationParameterControlType.COMBO,
-                            "+",
-                            List.of("+", "-", "*", "/")
-                    )
-            );
-            case EXPRESSION_SPLIT -> List.of(
-                    new MutationParameterDefinition(
-                            "newVariableName",
-                            "New variable name:",
-                            MutationParameterControlType.TEXT,
-                            "mutation_temp",
-                            List.of()
-                    )
-            );
             case CONTINUE_ANTI_IDIOM -> List.of(
                     new MutationParameterDefinition(
                             "addDeadCode",

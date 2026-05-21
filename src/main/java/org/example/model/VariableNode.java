@@ -1,7 +1,5 @@
 package org.example.model;
 
-import java.util.Map;
-
 public class VariableNode {
     private final int id;
     private final String name;
