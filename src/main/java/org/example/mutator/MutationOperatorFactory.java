@@ -42,6 +42,7 @@ public class MutationOperatorFactory {
             case VARIABLE_DECLARATION_HOIST -> createVariableDeclarationHoist(fileModel, config);
             case CONTINUE_ANTI_IDIOM -> createContinueAntiIdiom(fileModel, config, parameters);
             case ELSE_IF_FLATTEN -> createElseIfFlatten(fileModel, config);
+            case COMPOUND_CONDITION_EXPAND -> createCompoundConditionExpand(fileModel, config);
             case IF_TO_WHILE_CONVERT -> createIfToWhile(fileModel, config);
             case DO_WHILE_TO_WHILE -> createDoWhileToWhile(fileModel, config);
         };
@@ -92,6 +93,13 @@ public class MutationOperatorFactory {
     private MutationOperator createElseIfFlatten(FileModel fileModel, Neo4jConfig config) {
         ElseIfFlattenRepository repository = new ElseIfFlattenRepository(config);
         return new ElseIfFlattenMutation(fileModel, repository);
+    }
+
+    private MutationOperator createCompoundConditionExpand(FileModel fileModel,
+                                                           Neo4jConfig config) {
+        CompoundConditionExpandRepository repository =
+                new CompoundConditionExpandRepository(config);
+        return new CompoundConditionExpandMutation(fileModel, repository);
     }
 
     private MutationOperator createRedundantAssignment(FileModel fileModel,
