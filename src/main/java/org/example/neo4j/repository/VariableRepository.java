@@ -42,8 +42,8 @@ public class VariableRepository extends NodeRepository implements AutoCloseable 
             while (result.hasNext()) {
                 Record record = result.next();
 
-                if (record.get("id").isNull()){
-                    return resultList;
+                if (record.get("id").isNull() || record.get("line").isNull() || record.get("column").isNull()){
+                    continue;
                 }
 
                 int id = record.get("id").asInt();
@@ -81,8 +81,8 @@ public class VariableRepository extends NodeRepository implements AutoCloseable 
             while (result.hasNext()) {
                 Record record = result.next();
 
-                if (record.get("id").isNull()){
-                    return resultList;
+                if (record.get("id").isNull() || record.get("line").isNull() || record.get("column").isNull()){
+                    continue;
                 }
 
                 int id = record.get("id").asInt();
@@ -126,8 +126,8 @@ public class VariableRepository extends NodeRepository implements AutoCloseable 
             while (result.hasNext()) {
                 Record record = result.next();
 
-                if (record.get("id").isNull()){
-                    return resultList;
+                if (record.get("id").isNull() || record.get("line").isNull() || record.get("column").isNull()){
+                    continue;
                 }
 
                 int id = record.get("id").asInt();

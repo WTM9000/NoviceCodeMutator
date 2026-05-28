@@ -59,12 +59,4 @@ public class MutationRunRequest {
     public Map<MutationType, Map<String, String>> getMutationParameters() {
         return mutationParameters;
     }
-
-    public String getMutationParameter(MutationType mutationType, String parameterName) {
-        Map<String, String> params = mutationParameters.get(mutationType);
-        if (params == null) {
-            return null;
-        }
-        return params.get(parameterName);
-    }
 }
