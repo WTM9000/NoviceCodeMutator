@@ -101,8 +101,10 @@ public class EmptyLoopRepository extends NodeRepository implements AutoCloseable
         String cypher = """
                 MATCH (block)-[:STATEMENTS]->(decl:DeclarationStatement)
                        -[:DECLARATIONS]->(var:VariableDeclaration)
+                MATCH (var)-[:TYPE]->(type)
                 WHERE id(block) = $blockId
                   AND var.name IS NOT NULL
+                  AND type.name IN ['bool', '_Bool', 'boolean']
                   AND (EXISTS{ MATCH (var)-[:INITIALIZER]->()})
                   AND decl.startLine < $stmtLine
                 RETURN var.name AS varName

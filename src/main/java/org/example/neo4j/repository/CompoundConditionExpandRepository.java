@@ -104,8 +104,16 @@ public class CompoundConditionExpandRepository extends NodeRepository implements
         List<String> lhsLabels = record.get("lhsLabels").asList(Value::asString);
         List<String> rhsLabels = record.get("rhsLabels").asList(Value::asString);
 
-        long lhsId = record.get("lhsId").asLong();
-        long rhsId = record.get("rhsId").asLong();
+        Value lhsIdValue = record.get("lhsId");
+        Value rhsIdValue = record.get("rhsId");
+
+        if (lhsIdValue == null || lhsIdValue.isNull()
+                || rhsIdValue == null || rhsIdValue.isNull()) {
+            return null;
+        }
+
+        long lhsId = lhsIdValue.asLong();
+        long rhsId = rhsIdValue.asLong();
 
         List<String> left = flattenConditionTree(session, lhsId, expectedOp);
         List<String> right = flattenConditionTree(session, rhsId, expectedOp);

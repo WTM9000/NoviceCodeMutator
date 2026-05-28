@@ -101,7 +101,7 @@ public class ForToWhileMutation extends MutationOperator {
 
         String whileCondition = (condition != null && condition.getCode() != null && !condition.getCode().isBlank())
                 ? condition.getCode()
-                : "true";
+                : "1";
 
         String whileHeader = "while (" + whileCondition + ")";
 

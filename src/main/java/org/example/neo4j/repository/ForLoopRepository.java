@@ -29,6 +29,12 @@ public class ForLoopRepository extends NodeRepository implements AutoCloseable {
     public List<ForLoopNode> findAllForLoops() {
         String cypher = """
                 MATCH (n:ForStatement)
+                WHERE NOT EXISTS {
+                MATCH (stmt)
+                WHERE (stmt:ContinueStatement OR stmt:BreakStatement)
+                AND stmt.startLine >= n.startLine
+                AND stmt.endLine <= n.endLine
+                }
                 RETURN id(n) AS id,
                        n.code AS code,
                        n.startLine AS startLine,
@@ -83,9 +89,12 @@ public class ForLoopRepository extends NodeRepository implements AutoCloseable {
             List<String> initializerLabels = new ArrayList<>();
 
             Value initializerNode = record.get("i");
+            boolean isDeclaration = false;
 
-            initializerNode.asNode().labels().forEach(initializerLabels::add);
-            boolean isDeclaration = initializerLabels.contains("DeclarationStatement");
+            if (initializerNode != null && !initializerNode.isNull()) {
+                initializerNode.asNode().labels().forEach(initializerLabels::add);
+                isDeclaration = initializerLabels.contains("DeclarationStatement");
+            }
 
             ForLoopNode loop = mapLoop(record.get("n"));
             ForElementNode statement = mapElement("body", record.get("s"));

@@ -12,15 +12,15 @@ import java.util.List;
 public class FileModelWriter {
 
     public Path writeTo(FileModel fileModel) throws IOException {
-        if (fileModel.getFilePath() == null) {
-            throw new IllegalArgumentException("Target path must not be null");
-        }
-
         if (fileModel == null) {
             throw new IllegalArgumentException("FileModel must not be null");
         }
 
-        List lines = fileModel.getLines();
+        if (fileModel.getFilePath() == null) {
+            throw new IllegalArgumentException("Target path must not be null");
+        }
+
+        List<?> lines = fileModel.getLines();
         List<String> content = new ArrayList<>();
 
         if (lines != null) {
@@ -29,22 +29,24 @@ public class FileModelWriter {
             }
         }
 
-        if (fileModel.getFilePath().getParent() != null) {
-            Files.createDirectories(fileModel.getFilePath().getParent());
+        Path targetPath = fileModel.getFilePath();
+
+        if (targetPath.getParent() != null) {
+            Files.createDirectories(targetPath.getParent());
         }
 
-        Files.write(fileModel.getFilePath(), content, StandardCharsets.UTF_8);
+        Files.write(targetPath, content, StandardCharsets.UTF_8);
 
-        return fileModel.getFilePath();
+        return targetPath;
     }
 
     public Path writeUsingModelFileName(FileModel fileModel) throws IOException {
-        if (fileModel.getFilePath() == null) {
-            throw new IllegalArgumentException("Target directory must not be null");
-        }
-
         if (fileModel == null) {
             throw new IllegalArgumentException("FileModel must not be null");
+        }
+
+        if (fileModel.getFilePath() == null) {
+            throw new IllegalArgumentException("Target path must not be null");
         }
 
         return writeTo(fileModel);

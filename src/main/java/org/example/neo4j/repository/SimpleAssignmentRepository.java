@@ -37,6 +37,7 @@ public class SimpleAssignmentRepository extends NodeRepository implements AutoCl
             MATCH (assign)-[:LHS]->(left:Reference)
             MATCH (assign)-[:RHS]->(right:Reference)
             WHERE left.code <> right.code
+              AND assign.startLine = assign.endLine
               AND NOT EXISTS {
                   MATCH (right)-[:AST*1..]->(anyChild)
               }

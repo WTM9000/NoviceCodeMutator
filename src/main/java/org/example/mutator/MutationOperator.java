@@ -26,10 +26,22 @@ public abstract class MutationOperator {
     protected abstract void getRelevantNodes();
 
     public FileModel execute(){
-        getRelevantNodes();
-        FileModel newFile = mutate();
-        //Запихать сюда событие, если надо
-        return newFile;
+        try {
+            getRelevantNodes();
+            return mutate();
+        } finally {
+            closeRepositoryIfNeeded();
+        }
+    }
+
+    private void closeRepositoryIfNeeded() {
+        if (repo instanceof AutoCloseable closeable) {
+            try {
+                closeable.close();
+            } catch (Exception ex) {
+                System.err.println("Failed to close repository: " + ex.getMessage());
+            }
+        }
     }
 
     public abstract String getMutationName();

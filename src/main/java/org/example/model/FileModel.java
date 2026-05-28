@@ -22,9 +22,15 @@ public class FileModel {
         return fileName;
     }
 
-    public void setFileName(String newName){
+    public void setFileName(String newName) {
+        if (newName == null || newName.isBlank()) {
+            throw new IllegalArgumentException("newName must not be blank");
+        }
+
         this.fileName = newName;
-        this.filePath = filePath.getParent().resolve(newName);
+
+        Path parent = filePath == null ? null : filePath.getParent();
+        this.filePath = parent == null ? Path.of(newName) : parent.resolve(newName);
     }
 
     public Path getFilePath() {

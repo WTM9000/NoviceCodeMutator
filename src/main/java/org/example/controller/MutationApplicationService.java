@@ -23,10 +23,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 public class MutationApplicationService {
+
+    private static final Duration CPG_UPLOAD_TIMEOUT = Duration.ofMinutes(2);
 
     private final MutationOperatorFactory mutationOperatorFactory = new MutationOperatorFactory();
     private final FileModelWriter fileModelWriter = new FileModelWriter();
@@ -89,7 +91,7 @@ public class MutationApplicationService {
                 logger.accept("========================================");
                 logger.accept("Started processing file: " + selectedFile);
 
-                Path absolutePath = request.getWorkdir().resolve(selectedFile).normalize();
+                Path absolutePath = resolveSelectedFileInsideWorkdir(request.getWorkdir(), selectedFile);
                 FileModel currentFile = readFileModel(absolutePath);
 
                 logger.accept("Original file loaded: " + currentFile.getFileName());
@@ -185,8 +187,12 @@ public class MutationApplicationService {
     private void uploadToDbIfNeeded(FileModel fileModel, Consumer<String> logger) {
         logger.accept("Converting and uploading file to DB: " + fileModel.getFileName());
 
-        Path executable = Path.of("cpg-neo4j", "bin", "cpg-neo4j.bat");
+        Path executable = resolveCpgNeo4jExecutable();
         Path filePath = fileModel.getFilePath().toAbsolutePath().normalize();
+
+        if (!Files.exists(executable)) {
+            throw new IllegalStateException("cpg-neo4j executable not found: " + executable.toAbsolutePath());
+        }
 
         List<String> command = List.of(
                 executable.toString(),
@@ -198,19 +204,41 @@ public class MutationApplicationService {
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         processBuilder.redirectErrorStream(false);
 
-        try {
-            Process process = processBuilder.start();
+        Process process = null;
 
-            Thread stdoutThread = new Thread(() -> readProcessStream(process.getInputStream(), "[cpg-neo4j][OUT]", logger));
-            Thread stderrThread = new Thread(() -> readProcessStream(process.getErrorStream(), "[cpg-neo4j][ERR]", logger));
+        try {
+            process = processBuilder.start();
+
+            Process finalProcess = process;
+            Thread stdoutThread = new Thread(
+                    () -> readProcessStream(finalProcess.getInputStream(), "[cpg-neo4j][OUT]", logger),
+                    "cpg-neo4j-stdout-reader"
+            );
+
+            Thread stderrThread = new Thread(
+                    () -> readProcessStream(finalProcess.getErrorStream(), "[cpg-neo4j][ERR]", logger),
+                    "cpg-neo4j-stderr-reader"
+            );
 
             stdoutThread.start();
             stderrThread.start();
 
-            int exitCode = process.waitFor();
+            boolean finished = process.waitFor(
+                    CPG_UPLOAD_TIMEOUT.toSeconds(),
+                    TimeUnit.SECONDS
+            );
 
-            stdoutThread.join();
-            stderrThread.join();
+            if (!finished) {
+                process.destroyForcibly();
+                throw new IllegalStateException(
+                        "Command cpg-neo4j timed out after " + CPG_UPLOAD_TIMEOUT.toSeconds() + " seconds"
+                );
+            }
+
+            int exitCode = process.exitValue();
+
+            stdoutThread.join(TimeUnit.SECONDS.toMillis(5));
+            stderrThread.join(TimeUnit.SECONDS.toMillis(5));
 
             if (exitCode != 0) {
                 throw new IllegalStateException("Command cpg-neo4j ended with code: " + exitCode);
@@ -218,8 +246,22 @@ public class MutationApplicationService {
 
             logger.accept("CPG successfully uploaded to Neo4J: " + fileModel.getFileName());
         } catch (Exception ex) {
+            if (process != null && process.isAlive()) {
+                process.destroyForcibly();
+            }
+
             throw new RuntimeException("Error while uploading CPG to DB for file " + fileModel.getFileName(), ex);
         }
+    }
+
+    private Path resolveCpgNeo4jExecutable() {
+        String osName = System.getProperty("os.name", "").toLowerCase();
+
+        if (osName.contains("win")) {
+            return Path.of("cpg-neo4j", "bin", "cpg-neo4j.bat");
+        }
+
+        return Path.of("cpg-neo4j", "bin", "cpg-neo4j");
     }
 
     private void readProcessStream(InputStream inputStream, String prefix, Consumer<String> logger) {
@@ -255,7 +297,7 @@ public class MutationApplicationService {
 
     private String generateCommitMessage(List<String> generatedFiles) {
         LocalDateTime now = LocalDateTime.now();
-        String time = now.format(DateTimeFormatter.ofPattern("ss:mm:HH"));
+        String time = now.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         String date = now.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
 
         StringBuilder sb = new StringBuilder();
@@ -296,10 +338,29 @@ public class MutationApplicationService {
         }
     }
 
+    private Path resolveSelectedFileInsideWorkdir(Path workdir, String selectedFile) {
+        if (selectedFile == null || selectedFile.isBlank()) {
+            throw new IllegalArgumentException("Selected file must not be blank");
+        }
+
+        Path normalizedWorkdir = workdir.toAbsolutePath().normalize();
+        Path resolvedPath = normalizedWorkdir.resolve(selectedFile).normalize();
+
+        if (!resolvedPath.startsWith(normalizedWorkdir)) {
+            throw new SecurityException("Selected file escapes working directory: " + selectedFile);
+        }
+
+        if (!Files.exists(resolvedPath) || !Files.isRegularFile(resolvedPath)) {
+            throw new IllegalArgumentException("Selected file does not exist or is not a regular file: " + selectedFile);
+        }
+
+        return resolvedPath;
+    }
+
     protected String buildNewName(String oldName) {
         int lastDot = oldName.lastIndexOf('.');
         String suffix = "_" + LocalDateTime.now()
-                .format(DateTimeFormatter.ofPattern("dd_MM_yyyy_ss_mm_HH"));
+                .format(DateTimeFormatter.ofPattern("dd_MM_yyyy_HH_mm_ss_SSS"));
 
         if (lastDot > 0) {
             return oldName.substring(0, lastDot) + suffix + oldName.substring(lastDot);
