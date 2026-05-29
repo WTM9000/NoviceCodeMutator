@@ -83,16 +83,10 @@ public class VariableDeclarationHoistMutation extends MutationOperator {
             String indent = leadingWhitespace(newLines.get(lineIndex));
             // Each declarator becomes its own hoisted declaration line
             for (SingleDeclarator declarator : group.getDeclarators()) {
-                String typeName = declarator.getTypeName();
-                if (typeName == null || typeName.isBlank()) continue;
+                String declaration = buildDeclarationLine(indent, declarator);
 
-                if (declarator.isHasInitializer()) {
-                    declarationsToHoist.add(indent + typeName + " "
-                            + declarator.getVariableName()
-                            + " = " + declarator.getInitializerCode() + ";");
-                } else {
-                    declarationsToHoist.add(indent + typeName + " "
-                            + declarator.getVariableName() + ";");
+                if (declaration != null) {
+                    declarationsToHoist.add(declaration);
                 }
             }
         }
@@ -124,6 +118,115 @@ public class VariableDeclarationHoistMutation extends MutationOperator {
         while (i < line.length() && Character.isWhitespace(line.charAt(i))) i++;
         return line.substring(0, i);
     }
+
+    private String buildDeclarationLine(String indent, SingleDeclarator declarator) {
+        if (declarator == null) {
+            return null;
+        }
+
+        String typeName = declarator.getTypeName();
+        String variableName = declarator.getVariableName();
+
+        if (typeName == null || typeName.isBlank()) {
+            return null;
+        }
+
+        if (variableName == null || variableName.isBlank()) {
+            return null;
+        }
+
+        String declaratorText = formatDeclarator(typeName, variableName);
+        StringBuilder line = new StringBuilder();
+
+        line.append(indent).append(declaratorText);
+
+        if (declarator.isHasInitializer()) {
+            String initializer = declarator.getInitializerCode();
+
+            if (initializer != null && !initializer.isBlank()) {
+                line.append(" = ").append(initializer.trim());
+            }
+        }
+
+        line.append(";");
+
+        return line.toString();
+    }
+
+    /**
+     * Converts CPG-style array type spelling to valid C/C++ declarator spelling.
+     *
+     * Examples:
+     *   "int",      "a" -> "int a"
+     *   "int []",   "a" -> "int a[]"
+     *   "int [10]", "a" -> "int a[10]"
+     *   "int [][]", "a" -> "int a[][]"
+     *   "char * []", "s" -> "char * s[]"
+     */
+    private String formatDeclarator(String typeName, String variableName) {
+        String normalizedType = typeName.trim().replaceAll("\\s+", " ");
+
+        ArrayTypeParts arrayTypeParts = splitArraySuffix(normalizedType);
+
+        return arrayTypeParts.baseType() + " "
+                + variableName.trim()
+                + arrayTypeParts.arraySuffix();
+    }
+
+    /**
+     * Moves trailing array suffixes from the type to the variable declarator.
+     *
+     * Examples:
+     *   "int []"      -> baseType="int",    arraySuffix="[]"
+     *   "int [10]"    -> baseType="int",    arraySuffix="[10]"
+     *   "int [] []"   -> baseType="int",    arraySuffix="[][]"
+     *   "char * [32]" -> baseType="char *", arraySuffix="[32]"
+     */
+    private ArrayTypeParts splitArraySuffix(String typeName) {
+        String base = typeName.trim();
+        StringBuilder suffix = new StringBuilder();
+
+        while (true) {
+            int closeBracket = findTrailingCloseBracket(base);
+
+            if (closeBracket < 0) {
+                break;
+            }
+
+            int openBracket = base.lastIndexOf('[', closeBracket);
+
+            if (openBracket < 0) {
+                break;
+            }
+
+            String bracketPart = base.substring(openBracket, closeBracket + 1)
+                    .replaceAll("\\s+", "");
+
+            suffix.insert(0, bracketPart);
+            base = base.substring(0, openBracket).trim();
+        }
+
+        return new ArrayTypeParts(base, suffix.toString());
+    }
+
+    private int findTrailingCloseBracket(String value) {
+        int i = value.length() - 1;
+
+        while (i >= 0 && Character.isWhitespace(value.charAt(i))) {
+            i--;
+        }
+
+        if (i >= 0 && value.charAt(i) == ']') {
+            return i;
+        }
+
+        return -1;
+    }
+
+    private record ArrayTypeParts(String baseType, String arraySuffix) {
+    }
+
+
 
     @Override
     public String getMutationName() {
