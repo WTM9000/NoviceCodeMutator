@@ -45,6 +45,7 @@ public class SynchronizedVariablesRepository extends NodeRepository implements A
                 WHERE (fn:MethodDeclarations OR fn:FunctionDeclaration)
                 MATCH (block)-[:STATEMENTS]->(stmt)
                 WHERE stmt.startLine = stmt.endLine
+                AND NOT (stmt:Declaration OR stmt:DeclarationStatement)
                 RETURN id(block)     AS blockId,
                        stmt.code        AS stmtCode,
                        stmt.startLine   AS startLine,
