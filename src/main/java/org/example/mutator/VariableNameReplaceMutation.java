@@ -62,7 +62,7 @@ public class VariableNameReplaceMutation extends MutationOperator {
         List<String> newLines = new ArrayList<>(originalFile.getLines());
 
         for(VariableNode variable: variablesToChange){
-            String stringToChange = mutatedFile.getLines().get(variable.getLine()-1);
+            String stringToChange = newLines.get(variable.getLine()-1);
 
             int oldVariableStart = variable.getColumn()-1;
             int oldVariableEnd = oldVariableStart + variable.getName().length();

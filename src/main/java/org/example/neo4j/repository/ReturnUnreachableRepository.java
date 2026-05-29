@@ -151,6 +151,8 @@ public class ReturnUnreachableRepository extends NodeRepository implements AutoC
                   AND var.name IS NOT NULL
                   AND (EXISTS{ MATCH (var)-[:INITIALIZER]->()})
                   AND decl.startLine < $beforeLine
+                MATCH (var)-[:TYPE]->(type)
+                WHERE type.code IN []
                 RETURN var.name AS varName
                 ORDER BY decl.startLine
                 LIMIT 1
