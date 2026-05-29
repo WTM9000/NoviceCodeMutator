@@ -22,7 +22,7 @@ public class MutationWorkbenchFrame extends JFrame {
 
     private final JTextField workdirField = new JTextField(40);
     private final JTextField githubUsernameField = new JTextField(20);
-    private final JTextField githubTokenField = new JTextField(20);
+    private final JTextField githubTokenField = new JPasswordField(20);
     private final JTextField repoNameField = new JTextField(20);
 
     private final DefaultListModel<String> filesModel = new DefaultListModel<>();
